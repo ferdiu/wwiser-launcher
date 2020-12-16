@@ -1,0 +1,15 @@
+--- Assets/Wwise/Editor/WwiseSetupWizard/AkPluginActivator.cs	2020-12-16 17:51:05.510753509 +0100
++++ Assets/Wwise/Editor/WwiseSetupWizard/AkPluginActivator.cs	2020-12-16 15:02:44.803154769 +0100
+@@ -546,6 +546,12 @@
+ 
+ 			switch (pluginPlatform)
+ 			{
++				case "Linux":
++					editorCPU = splitPath[5];
++					pluginConfig = splitPath[6];
++					editorOS = "Linux";
++					break;
++
+ 				case "Mac":
+ 					pluginConfig = splitPath[5];
+ 					editorCPU = "AnyCPU";

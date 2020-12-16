@@ -1,0 +1,11 @@
+--- Assets/Wwise/Editor/WwiseWindows/AkWwisePicker.cs	2020-12-16 17:51:05.506753462 +0100
++++ Assets/Wwise/Editor/WwiseWindows/AkWwisePicker.cs	2020-12-16 15:02:44.903155928 +0100
+@@ -50,7 +50,7 @@
+ 				{
+ 					string errorMessage;
+ 
+-#if UNITY_EDITOR_WIN
++#if UNITY_EDITOR_WIN || UNITY_EDITOR_LINUX
+ 					errorMessage =
+ 						"Access to Wwise is required to generate the SoundBanks. Please select the Wwise Windows Installation Path from the Edit > Wwise Settings... menu.";
+ #elif UNITY_EDITOR_OSX

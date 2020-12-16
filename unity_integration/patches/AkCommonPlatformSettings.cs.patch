@@ -1,0 +1,11 @@
+--- Assets/Wwise/Deployment/API/Handwritten/Common/AkCommonPlatformSettings.cs	2020-12-16 17:51:05.498753370 +0100
++++ Assets/Wwise/Deployment/API/Handwritten/Common/AkCommonPlatformSettings.cs	2020-12-16 15:02:46.199170941 +0100
+@@ -246,6 +246,8 @@
+ 		return System.IO.Path.Combine(UnityEngine.Application.dataPath, "Wwise", "Deployment", "Plugins", "Windows", "x86_64", "DSP");
+ #elif UNITY_EDITOR_OSX
+ 		return System.IO.Path.Combine(UnityEngine.Application.dataPath, "Wwise", "Deployment", "Plugins", "Mac", "DSP");
++#elif UNITY_EDITOR_LINUX
++		return System.IO.Path.Combine(UnityEngine.Application.dataPath, "Wwise", "Deployment", "Plugins", "Linux", "x86_64", "DSP");
+ #elif UNITY_STANDALONE_WIN
+ 		string potentialPath = System.IO.Path.Combine(UnityEngine.Application.dataPath, "Plugins" + System.IO.Path.DirectorySeparatorChar);
+ 		string architectureName = "x86";

@@ -1,0 +1,40 @@
+--- Assets/Wwise/Deployment/API/Handwritten/Common/AkUtilities.cs	2020-12-16 17:51:05.490753278 +0100
++++ Assets/Wwise/Deployment/API/Handwritten/Common/AkUtilities.cs	2020-12-16 15:02:46.583175389 +0100
+@@ -193,6 +193,17 @@
+ #elif UNITY_EDITOR_OSX
+ 		if (!string.IsNullOrEmpty(settings.WwiseInstallationPathMac))
+ 			result = System.IO.Path.Combine(settings.WwiseInstallationPathMac, "Contents/Tools/WwiseCLI.sh");
++#elif UNITY_EDITOR_LINUX
++		if (!string.IsNullOrEmpty(settings.WwiseInstallationPathWindows))
++		{
++			result = settings.WwiseInstallationPathWindows + @"\Authoring\x64\Release\bin\WwiseCLI.exe";
++
++			if (!System.IO.File.Exists(WineHelper.ConvertWinePathToUnix(result)))
++				result = settings.WwiseInstallationPathWindows + @"\Authoring\Win32\Release\bin\WwiseCLI.exe";
++		}
++
++		if (result != null && System.IO.File.Exists(WineHelper.ConvertWinePathToUnix(result)))
++			return result;
+ #endif
+ 
+ 		if (result != null && System.IO.File.Exists(result))
+@@ -228,12 +239,19 @@
+ #elif UNITY_EDITOR_OSX
+ 		var command = "/bin/sh";
+ 		var arguments = "\"" + wwiseCli + "\"";
++#elif UNITY_EDITOR_LINUX
++		var command = WineHelper.wineBin;
++		var arguments = "\"" + wwiseCli + "\"";
+ #else
+ 		var command = "";
+ 		var arguments = "";
+ #endif
+ 
++#if UNITY_EDITOR_LINUX
++		arguments += " \"" + WineHelper.ConvertUnixPathToWine(wwiseProjectFullPath) + "\"";
++#else
+ 		arguments += " \"" + wwiseProjectFullPath + "\"";
++#endif
+ 
+ 		if (platforms != null)
+ 		{

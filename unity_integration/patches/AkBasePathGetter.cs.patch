@@ -1,0 +1,11 @@
+--- Assets/Wwise/Deployment/API/Handwritten/Common/AkBasePathGetter.cs	2020-12-16 17:51:05.502753417 +0100
++++ Assets/Wwise/Deployment/API/Handwritten/Common/AkBasePathGetter.cs	2020-12-16 15:09:26.579787541 +0100
+@@ -34,7 +34,7 @@
+ 		platformSubDir = "Windows";
+ #elif UNITY_EDITOR_OSX || (UNITY_STANDALONE_OSX && !UNITY_EDITOR)
+ 		platformSubDir = "Mac";
+-#elif UNITY_STANDALONE_LINUX
++#elif UNITY_EDITOR_LINUX || (UNITY_STANDALONE_LINUX && !UNITY_EDITOR)
+ 		platformSubDir = "Linux";
+ #elif UNITY_XBOXONE
+ 		platformSubDir = "XboxOne";

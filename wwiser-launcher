@@ -1,0 +1,58 @@
+#!/bin/bash
+
+WWISER_LAUNCHER_DIR=
+
+get_wwiser_launcher_install_dir() {
+    # see https://stackoverflow.com/questions/59895/how-to-get-the-source-directory-of-a-bash-script-from-within-the-script-itself
+    # for an explaination of this function
+
+    local SOURCE="${BASH_SOURCE[0]}"
+
+    # resolve $SOURCE until the file is no longer a symlink
+    while [ -h "$SOURCE" ]; do
+        WWISER_LAUNCHER_DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
+        SOURCE="$(readlink "$SOURCE")"
+        # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+        [[ $SOURCE != /* ]] && SOURCE="$WWISER_LAUNCHER_DIR/$SOURCE"
+    done
+
+    export WWISER_LAUNCHER_DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
+}
+
+usage() {
+    echo "Usage: $0 [-i PATH_TO_LOCATION_OF_OFFLINE_INSTALL] | [-U PATH_TO_UNITY_PROJECT]"
+    echo
+    echo "    Options:"
+    echo "      -U path_to_unity_project     Apply patch in Unity project in \`path_to_unity_project'"
+    echo "                                   (the project need the Wwise integration already installed)"
+    echo "      -i path_to_offline_install   Install Wwise using the offline installation in"
+    echo "                                   \`path_to_offline_install' (needs Wine >= 6.0)"
+}
+
+install() {
+    test ! -d "$1" && echo "Directory not exists. Aborting." && return 1
+
+    local SAVEDIR="`pwd`"
+    cd "$1"
+    "${WWISER_LAUNCHER_DIR}"/installer/install_wwise.sh; EXIT_CODE=$?
+    cd "$SAVEDIR"
+    return ${EXIT_CODE}
+}
+
+patch_project() {
+    BACKUP_NOT_NEEDED="y" PROJECT_PATH="$1" "${WWISER_LAUNCHER_DIR}"/unity_integration/apply_patches_to_unity_integration.sh; EXIT_CODE=$?
+    return ${EXIT_CODE}
+}
+
+test -z '$@' && usage && exit 1
+
+get_wwiser_launcher_install_dir
+
+while getopts i:U: option; do
+    case "${option}"
+    in
+        i) install "${OPTARG}";;
+        U) patch_project "${OPTARG}";;
+        *) usage; exit 1;;
+    esac
+done
