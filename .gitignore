@@ -1,1 +1,9 @@
-downloader/jwt.txt
+downloader/res/jwt.txt
+downloader/res/bundles.json
+downloader/res/child_bundles/*.json
+
+__pycache__/
+*.py[cod]
+*$py.class
+
+.vscode
