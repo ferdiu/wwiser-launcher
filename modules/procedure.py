@@ -40,12 +40,13 @@ class ProcedureFutureValue(object):
     def get(self):
         return (self.l)(*self.args)
 
+EXIT_CODE = {
+    "CANCELED": -1,
+    "SUCCESS": 0,
+    "ERROR": 1
+}
+
 class Procedure(object):
-    EXIT_CODE = {
-        "CANCELED": -1,
-        "SUCCESS": 0,
-        "ERROR": 1
-    }
 
     def __init__(self, procedure_id, menu_queue = []):
         self.id = procedure_id
@@ -104,7 +105,7 @@ class Procedure(object):
         self.menu_current = None
         if len(self.menu_queue) == 0:
             print("Procedure " + self.id + " finished.")
-            return self._exit(Procedure.EXIT_CODE["SUCCESS"])
+            return self._exit(EXIT_CODE["SUCCESS"])
         self.menu_current = self.menu_queue.pop(0)
         return self._execute_current()
 
@@ -113,7 +114,7 @@ class Procedure(object):
         self.menu_current = None
         if len(self.menu_stack) == 0:
             print("Procedure " + self.id + " canceled.")
-            return self._exit(Procedure.EXIT_CODE["CANCELED"])
+            return self._exit(EXIT_CODE["CANCELED"])
         self.menu_current = self.menu_stack.pop()
         while self.menu_current.get_jumped_on_cancel:
             self.menu_queue.insert(0, self.menu_current)
@@ -132,12 +133,21 @@ class Procedure(object):
             if _DEBUG:
                 print(traceback.format_exc())
             print("Procedure " + self.id + " canceled because an error occurred.")
-            return self._exit(Procedure.EXIT_CODE["ERROR"])
+            return self._exit(EXIT_CODE["ERROR"])
         else:
             if self.menu_current.sets_a_common_variable():
                 self.common[self.menu_current.sets_common] = returned_value
             return self._execute_next()
     
     def _exit(self, code):
+        while len(self.menu_stack) > 0:
+            p_node = self.menu_stack.pop()
+            del p_node
+        while len(self.menu_queue) > 0:
+            p_node = self.menu_queue.pop()
+            del p_node
+        del self.menu_stack
+        del self.menu_current
+        del self.menu_queue
         del self
         return code
