@@ -176,6 +176,79 @@ def _check_downloaded_files(installation_info):
         else:
             print("File " + f["id"] + ": FAIL")
 
+def _pick_project_directory(installation_info):
+    try:
+        selected_path = ""
+
+        while True:
+            dir_selection_menu = Menu.SelectWritableDirectory("Select the Unity Project Directory")
+            selected_path = dir_selection_menu.show()
+            if FakeLauncher.is_valid_unity_project_directory(selected_path): break
+            Menu.ErrorDialog("Not a Unity Project directory", "The selected directory does not contain a Unity Porject.")
+
+        return selected_path
+    except MenuCancel as e:
+        raise ProcedureStepCanceledException
+    except FakeLauncherException and MenuException as e:
+        raise ProcedureException(e)
+
+def _extract_downloaded_files_in_unity_project(installation_info):
+    try:
+        bundle_directory = installation_info["download_directory"] + "/Wwise " + FakeLauncher.get_version_as_string(installation_info["bundle"]) + " Unity Integration/bundle"
+
+        for f in installation_info["file_list"]:
+            Menu.ProgressWait("Extracting files", "Extracting Wwise integration files in your project...",
+                subprocess.Popen([ "tar", "-xf", bundle_directory + "/" + f["id"], "--directory", installation_info["project_location"] + "/Assets" ], stdout=subprocess.PIPE, universal_newlines=True)
+            ).show()
+
+    except MenuCancel as e:
+        raise ProcedureStepCanceledException
+    except FakeLauncherException and MenuException as e:
+        raise ProcedureException(e)
+
+def _apply_unity_integration_patch(installation_info):
+    try:
+        unity_version = FakeLauncher.get_unity_project_version(installation_info["project_location"])
+        unity_executable_path = FakeLauncher.get_unity_editor_executable(unity_version)
+
+        # TODO: this should probably be in FakeLauncher class as a static method
+        Menu.ProgressWait("Applying Wwise Unity Integration Patch", "Wait until this process ends. Canceling this process may leave your project in a corrupted state.",
+            subprocess.Popen([
+                FakeLauncher.wwiser_launcher_location + "/wwiser-launcher",
+                "-U",
+                installation_info["project_location"]
+            ], stdout=subprocess.PIPE, universal_newlines=True)
+        ).show()
+
+    except MenuCancel as e:
+        raise ProcedureStepCanceledException
+    except FakeLauncherException and MenuException as e:
+        raise ProcedureException(e)
+def _run_wwise_setup_wizard(installation_info):
+    try:
+        unity_version = FakeLauncher.get_unity_project_version(installation_info["project_location"])
+        unity_executable_path = FakeLauncher.get_unity_editor_executable(unity_version)
+
+        Menu.ProgressWait("Executing Wwise Setup Wizard", "Wait until this process ends. Canceling this process may leave your project in a corrupted state.",
+            subprocess.Popen([
+                unity_executable_path,
+                "-batchmode",
+                "-nographics",
+                "-logFile",
+                installation_info["project_location"] + "/logRunSetup.txt",
+                "-projectPath",
+                installation_info["project_location"],
+                "-executeMethod",
+                "WwiseSetupWizard.RunSetup",
+                "-quit"
+            ], stdout=subprocess.PIPE, universal_newlines=True)
+        ).show()
+
+    except MenuCancel as e:
+        raise ProcedureStepCanceledException
+    except FakeLauncherException and MenuException as e:
+        raise ProcedureException(e)
+
 def get_unity_integration_procedure():
     unity_integration_procedure = Procedure("unity integration")
     unity_integration_procedure.set_common({
@@ -190,7 +263,8 @@ def get_unity_integration_procedure():
         "download_size": 0,
         "installed_size": 0,
         "file_list": [],
-        "download_directory": ""
+        "download_directory": "",
+        "project_location": ""
     }).enqueue_menu(
         ProcedureNode(
             "PickWwiseVersion",
@@ -223,10 +297,31 @@ def get_unity_integration_procedure():
     ).enqueue_menu(
         ProcedureNode(
             "DownloadArchives",
-            _download_files, (unity_integration_procedure.common,))
+            _download_files, (unity_integration_procedure.common,),
+            get_jumped_on_cancel=True)
     ).enqueue_menu(
         ProcedureNode(
             "CheckDownloadedArchives",
-            _check_downloaded_files, (unity_integration_procedure.common,))
+            _check_downloaded_files, (unity_integration_procedure.common,),
+            get_jumped_on_cancel=True)
+    ).enqueue_menu(
+        ProcedureNode(
+            "SelectProjectDirectory",
+            _pick_project_directory, (unity_integration_procedure.common,),
+            "project_location")
+    ).enqueue_menu(
+        ProcedureNode(
+            "ExtractFilesInProject",
+            _extract_downloaded_files_in_unity_project, (unity_integration_procedure.common,),
+            get_jumped_on_cancel=True)
+    ).enqueue_menu(
+        ProcedureNode(
+            "ApplyUnityIntegrationPatch",
+            _apply_unity_integration_patch, (unity_integration_procedure.common,),
+            get_jumped_on_cancel=True)
+    ).enqueue_menu(
+        ProcedureNode(
+            "RunWwiseSetupWizard",
+            _run_wwise_setup_wizard, (unity_integration_procedure.common,))
     )
     return unity_integration_procedure
