@@ -1,6 +1,7 @@
 #!/usr/bin/python3.7
 
 import os
+import subprocess
 
 from modules.fake_launcher import FakeLauncher as Launcher
 from modules.ui.common import MenuCancel, MenuException
@@ -24,11 +25,11 @@ PROCEDURES = {
 
 def show_main_menu():
     return Menu.Radiolist("wwiser launcher - " + Launcher.u_id, [ "ID", "" ])\
-        .add_row(True, [ "login", "Login" ])\
+        .add_row(True, [ "login", "Login [NOT IMPLEMENTED]" ])\
         .add_row(False, [ "installation", "Install Packages" ])\
         .add_row(False, [ "unity_integration", "Apply Unity Integration" ])\
-        .add_row(False, [ "unreal_integration", "Apply Unreal Integration" ])\
-        .add_row(False, [ "godot_integration", "Apply Godot Integration" ])\
+        .add_row(False, [ "unreal_integration", "Apply Unreal Integration [NOT IMPLEMENTED]" ])\
+        .add_row(False, [ "godot_integration", "Apply Godot Integration [NOT IMPLEMENTED]" ])\
         .show()
 
 def initialize():
@@ -36,6 +37,7 @@ def initialize():
         Launcher.init()
         if _DEBUG:
             print("wwiser-launcher installation path: " + wwiser_launcher_base_directory)
+        Launcher.wwiser_launcher_location = wwiser_launcher_base_directory
     except Exception as e:
         print("Couldn't initialize the launcher.")
         print(e)

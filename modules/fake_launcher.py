@@ -4,6 +4,7 @@ import json
 import base64
 import subprocess
 import sys
+import yaml
 
 from .download_manager.wget import Wget as Downloader
 
@@ -41,6 +42,7 @@ class FakeLauncherException(Exception):
     pass
 
 class FakeLauncher(object):
+    wwiser_launcher_location = ""
     config_dir = os.environ.get("HOME") + "/.config/wwiser-launcher"
     bundles_dir = config_dir + "/bundles"
 
@@ -429,3 +431,30 @@ rQIDAQAB
         FakeLauncher._init_mk_config_dir()
         FakeLauncher._init_jwt()
         FakeLauncher._init_bundles()
+
+    @staticmethod
+    def is_valid_unity_project_directory(path):
+        return os.path.isdir(path + "/Assets") and \
+               os.path.isdir(path + "/Packages") and \
+               os.path.isdir(path + "/ProjectSettings") and \
+               os.path.isfile(path + "/ProjectSettings/ProjectSettings.asset") and \
+               os.path.isfile(path + "/ProjectSettings/ProjectVersion.txt")
+
+    @staticmethod
+    def get_unity_project_version(path):
+        if not FakeLauncher.is_valid_unity_project_directory(path):
+            return ""
+        
+        with open(path + "/ProjectSettings/ProjectVersion.txt") as p_ver:
+            loaded = yaml.load(p_ver)
+            return loaded["m_EditorVersion"]
+
+    @staticmethod
+    def get_unity_editor_install_location_from_unityhub():
+        with open(os.environ.get("HOME") + "/.config/UnityHub" + "/secondaryInstallPath.json") as unity_editor_path_file:
+            return unity_editor_path_file.readline().strip().strip("\"").rstrip("/")
+
+    @staticmethod
+    def get_unity_editor_executable(version):
+        install_path = FakeLauncher.get_unity_editor_install_location_from_unityhub()
+        return install_path + "/" + version + "/Editor/Unity"
