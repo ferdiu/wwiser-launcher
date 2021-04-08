@@ -5,10 +5,10 @@ import os
 from modules.fake_launcher import FakeLauncher as Launcher
 from modules.ui.common import MenuCancel, MenuException
 from modules.ui import zenity as Menu
-from modules.procedure import Procedure
 
 # Import procedures
 from modules.install_procedure import get_installation_procedure
+from modules.apply_unity_integration_procedure import get_unity_integration_procedure
 
 # Initialize globals
 _DEBUG = bool(os.environ.get('DEBUG'))
@@ -16,8 +16,8 @@ wwiser_launcher_base_directory = os.path.abspath(os.path.dirname(__file__))
 
 PROCEDURES = {
     "login": Menu.ErrorDialog("Not implemented.", "This procedure is still not implemented."),
-    "installation": get_installation_procedure(),
-    "unity_integration": Menu.ErrorDialog("Not implemented.", "This procedure is still not implemented."),
+    "installation": get_installation_procedure,
+    "unity_integration": get_unity_integration_procedure,
     "unreal_integration": Menu.ErrorDialog("Not implemented.", "This procedure is still not implemented."),
     "godot_integration": Menu.ErrorDialog("Not implemented.", "This procedure is still not implemented.")
 }
@@ -46,9 +46,11 @@ def start_wwiser_launcher():
         result = PROCEDURES[show_main_menu()]
         if issubclass(result.__class__, Menu.Dialog):
             result.show()
-        elif isinstance(result, Procedure):
-            print("Starting procedure")
-            result.start()
+        elif callable(result):
+            result().start()
+        del result
+        result = None
+        del result
     except MenuCancel as e:
         quit(0)
     except MenuException as e:

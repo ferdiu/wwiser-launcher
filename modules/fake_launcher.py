@@ -29,6 +29,9 @@ class PackagesType(object):
     ltx = "LTX"
     authoring_debug = "AuthoringDebug"
     authoring = "Authoring"
+    #
+    unity_integration = "Unity"
+    integration_extension = "Extensions"
 
 class SourceCodeLevel(object):
     level2 = "Level2"
@@ -193,7 +196,7 @@ rQIDAQAB
         b = FakeLauncher.get_payload_and_verify_signature(response)
 
         with open(FakeLauncher.bundles_dir + "/" + bundle["id"] + ".json", "w") as file:
-            file.write(b)
+            file.write(b.decode('utf-8'))
             file.close()
         
         return json.loads(b)
