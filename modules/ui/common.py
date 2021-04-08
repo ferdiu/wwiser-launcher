@@ -254,6 +254,10 @@ class Progress(Dialog):
         self._do_show()
         return self.get_returncode()
 
+class ProgressWait(Progress):
+    def __init__(self, title, status_string, process_to_monitor = None):
+        super(ProgressWait, self).__init__(title, status_string, process_to_monitor = None)
+
 
 def byte_to_human_readable(number):
     result = float(number)
@@ -265,9 +269,9 @@ def byte_to_human_readable(number):
     result = round(result, 2)
 
     order_string = "B"
-    if order == 1: order_string = "KB"
-    elif order == 2: order_string = "MB"
-    elif order == 3: order_string = "GB"
-    elif order == 4: order_string = "TB"
+    if order == 1: order_string = "KiB"
+    elif order == 2: order_string = "MiB"
+    elif order == 3: order_string = "GiB"
+    elif order == 4: order_string = "TiB"
 
     return str(result) + order_string

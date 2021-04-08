@@ -184,11 +184,35 @@ class Progress(Menu.Progress, Dialog):
 
             composed = ""
             for out in self.get_output():
-                decoded_output = out.decode('utf-8')
+                decoded_output = ""
+                if isinstance(out, str):
+                    decoded_output = out
+                else:
+                    decoded_output = out.decode('utf-8')
 
                 composed = self.filter_process_output(composed, decoded_output, menu_process)            
 
                 if not self.is_still_running(): break
+
+            self.wait_finish()
+            menu_process.wait()
+        except subprocess.CalledProcessError as e:
+            if e.returncode == 1:
+                raise Menu.MenuCancel
+            else:
+                raise Menu.MenuException(e.output)
+
+class ProgressWait(Menu.ProgressWait, Progress):
+    def __init__(self, title, status_string, process_to_monitor = None):
+        Dialog.__init__(self, title, width = None, height = None)
+        self.type = [ "--progress", "--auto-close", "--pulsate" ]
+        self.body = [ "--text", str(status_string) ]
+        self.monitored = None
+        self._add_process_to_monitor(process_to_monitor)
+
+    def _do_show(self):
+        try:
+            menu_process = subprocess.Popen(self.compiled, stdin=self.monitored.stdout)
 
             self.wait_finish()
             menu_process.wait()
