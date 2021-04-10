@@ -10,6 +10,12 @@
 - Unreal Integration
 - Godot Integration
 - Downloader should be able to use curl if wget is not installed
+- Add patch for Unity integration version 19 (currently supported only 18)
+
+## Installation
+
+- Generate install-entry.json during installation procedure
+- Add step for extraction
 
 ## Unity Integration
 
