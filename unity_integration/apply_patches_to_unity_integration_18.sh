@@ -1,6 +1,8 @@
 #!/bin/bash
 
-PATCHES_DIR="${WWISER_LAUNCHER_DIR}/unity_integration/patches"
+UNITY_INTEGRATION_VERSION=18
+PATCHES_DIR="${WWISER_LAUNCHER_DIR}/unity_integration/patches_v${UNITY_INTEGRATION_VERSION}"
+WINE_HELPER_DIR="${WWISER_LAUNCHER_DIR}/unity_integration"
 
 if [ -z "${PROJECT_PATH}" ]; then
     echo "No PROJECT_PATH variable set, exiting." >&2
@@ -45,7 +47,7 @@ patch_AkPluginActivator() {
 }
 
 install_WineHelper() {
-    cp -v "${PATCHES_DIR}/WineHelper.cs" "${PROJECT_PATH}/Assets/"
+    cp -v "${WINE_HELPER_DIR}/WineHelper.cs" "${PROJECT_PATH}/Assets/"
 }
 
 wwise_files_are_present() {
