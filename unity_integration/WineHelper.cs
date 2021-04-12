@@ -6,6 +6,7 @@ public static class WineHelper
 {
     private static string _wineBin = null;
     private static string _winepathBin = null;
+    private static string _realpathBin = null;
 
     public static string wineBin { get { 
         if (_wineBin == null || _wineBin == "") return _wineBin = FindBinaryInEnvPath("wine");
@@ -14,6 +15,10 @@ public static class WineHelper
     public static string winepathBin { get {
         if (_winepathBin == null || _winepathBin == "") return _winepathBin = FindBinaryInEnvPath("winepath");
         return _winepathBin;
+    } }
+    public static string realpathBin { get {
+        if (_realpathBin == null || _realpathBin == "") return _realpathBin = FindBinaryInEnvPath("realpath");
+        return _realpathBin;
     } }
 
     private static string FindBinaryInEnvPath(string binary)
@@ -55,24 +60,27 @@ public static class WineHelper
         return output;
     }
 
-	public static string ConvertWinePathToUnix(string winePath)
-	{
-		if (!System.IO.File.Exists(winepathBin)) {
+    public static string ConvertWinePathToUnix(string winePath, bool realPath = false)
+    {
+        if (!System.IO.File.Exists(winepathBin)) {
             Debug.Log("Error: winepath not found! Is Wine installed in the system?");
             return winePath;
         }
 
-        return ExecuteAndGetOutput(winepathBin, "-u \"" + winePath + "\"");
-	}
+        if (realPath)
+            return ExecuteAndGetOutput(realpathBin, "\"" + ExecuteAndGetOutput(winepathBin, "-u \"" + winePath + "\"") + "\"");
+        else
+            return ExecuteAndGetOutput(winepathBin, "-u \"" + winePath + "\"");
+    }
 
-	public static string ConvertUnixPathToWine(string unixPath)
-	{
-		if (!System.IO.File.Exists(winepathBin)) {
+    public static string ConvertUnixPathToWine(string unixPath)
+    {
+        if (!System.IO.File.Exists(winepathBin)) {
             Debug.Log("Error: winepath not found! Is Wine installed in the system?");
             return unixPath;
         }
 
         return ExecuteAndGetOutput(winepathBin, "-w \"" + unixPath + "\"");
-	}
+    }
 
 }
