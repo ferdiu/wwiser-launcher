@@ -196,6 +196,10 @@ class Progress(Menu.Progress, Dialog):
 
             self.wait_finish()
             menu_process.wait()
+
+            if self.get_returncode() > 1:
+                Menu.MenuException("The process exited with a non-zero code.")
+
         except subprocess.CalledProcessError as e:
             if e.returncode == 1:
                 raise Menu.MenuCancel
@@ -205,7 +209,7 @@ class Progress(Menu.Progress, Dialog):
 class ProgressWait(Menu.ProgressWait, Progress):
     def __init__(self, title, status_string, process_to_monitor = None):
         Dialog.__init__(self, title, width = None, height = None)
-        self.type = [ "--progress", "--auto-close", "--pulsate" ]
+        self.type = [ "--progress", "--auto-close", "--auto-kill", "--pulsate" ]
         self.body = [ "--text", str(status_string) ]
         self.monitored = None
         self._add_process_to_monitor(process_to_monitor)
@@ -216,6 +220,10 @@ class ProgressWait(Menu.ProgressWait, Progress):
 
             self.wait_finish()
             menu_process.wait()
+
+            if self.get_returncode() > 1:
+                raise Menu.MenuException("The process exited with a non-zero code.")
+
         except subprocess.CalledProcessError as e:
             if e.returncode == 1:
                 raise Menu.MenuCancel
