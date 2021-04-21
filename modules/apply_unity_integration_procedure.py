@@ -39,6 +39,9 @@ def _pick_packages_from_bundle(installation_info):
                     FakeLauncher.get_value_display_name(value),
                     FakeLauncher.get_value_description(value) 
                 ])
+    # For some reason Wwise Launcher force you to download documentation, this will let you choose
+    list_menu.add_row(False, [ "Documentation", "Documentation", "Download documentation." ])
+
     try:
         return list_menu.show()
     except MenuCancel as e:
@@ -50,14 +53,18 @@ def _pick_deployment_platforms(installation_info):
     list_menu = Menu.Checklist("Deployment Platforms", [ "ID", "Deployment Platforms" ])
     for value in FakeLauncher.get_values_in_group(installation_info["bundle"], "DeploymentPlatforms"):
         list_menu.add_row(
-            FakeLauncher.is_value_checked(value) or FakeLauncher.get_value_id(value) == "Linux",
+            FakeLauncher.is_value_checked(value) or FakeLauncher.get_value_id(value) == "Linux" or FakeLauncher.get_value_id(value) == "Windows",
             [ 
                 FakeLauncher.get_value_id(value),
                 FakeLauncher.get_value_display_name(value)
             ])
 
     try:
-        return list_menu.show()
+        list = list_menu.show()
+        if "Linux" in list and not "Windows" in list:
+            # To make the unity integration path work the Windows C# scripts are needed
+            list.append("Windows")
+        return list
     except MenuCancel as e:
         raise ProcedureStepCanceledException
     except FakeLauncherException and MenuException as e:
@@ -167,14 +174,26 @@ def _download_files(installation_info):
             raise ProcedureException(e)
 
 def _check_downloaded_files(installation_info):
-    bundle_directory = installation_info["download_directory"] + "/Wwise " + FakeLauncher.get_version_as_string(installation_info["bundle"]) + " Unity Integration/bundle"
+    try:
+        bundle_directory = installation_info["download_directory"] + "/Wwise " + FakeLauncher.get_version_as_string(installation_info["bundle"]) + " Unity Integration/bundle"
 
-    for f in installation_info["file_list"]:
-        sha1sum_output = subprocess.check_output([ "sha1sum", bundle_directory + "/" + f["id"] ]).decode('utf-8').split(" ")[0]
-        if sha1sum_output == f["sha1"]:
-            print("File " + f["id"] + ": OK")
-        else:
-            print("File " + f["id"] + ": FAIL")
+        for f in installation_info["file_list"]:
+            sha1sum_output = subprocess.check_output([ "sha1sum", bundle_directory + "/" + f["id"] ]).decode('utf-8').split(" ")[0]
+            if sha1sum_output == f["sha1"]:
+                if _DEBUG:
+                    print("File " + f["id"] + ": OK")
+            else:
+                # This part of the code can be reached only if the downloaded package has the same size but it is not the same!
+                if _DEBUG:
+                    print("File " + f["id"] + ": FAIL")
+                Menu.ErrorDialog("An error occurred while checking file " + f["id"] + ".")
+                os.remove(bundle_directory + "/" + f["id"])
+                raise MenuCancel("Canceled.")
+
+    except MenuCancel as e:
+        raise ProcedureStepCanceledException
+    except FakeLauncherException and MenuException as e:
+        raise ProcedureException(e)
 
 def _pick_project_directory(installation_info):
     try:
@@ -211,19 +230,23 @@ def _apply_unity_integration_patch(installation_info):
         unity_version = FakeLauncher.get_unity_project_version(installation_info["project_location"])
         unity_executable_path = FakeLauncher.get_unity_editor_executable(unity_version)
 
-        # TODO: this should probably be in FakeLauncher class as a static method
-        Menu.ProgressWait("Applying Wwise Unity Integration Patch", "Wait until this process ends. Canceling this process may leave your project in a corrupted state.",
-            subprocess.Popen([
-                FakeLauncher.wwiser_launcher_location + "/wwiser-launcher",
-                "-U",
-                installation_info["project_location"]
-            ], stdout=subprocess.PIPE, universal_newlines=True)
+        Menu.ProgressWait(
+            "Applying Wwise Unity Integration Patch",
+            "Wait until this process ends. Canceling this process may leave your project in a corrupted state.",
+            FakeLauncher.apply_unity_integration_patch(installation_info["project_location"])
+        ).show()
+
+        Menu.ProgressWait(
+            "Installing WineHelper in your project",
+            "Wait until this process ends. Canceling this process may leave your project in a corrupted state.",
+            FakeLauncher.install_wine_helper_in_project(installation_info["project_location"])
         ).show()
 
     except MenuCancel as e:
         raise ProcedureStepCanceledException
     except FakeLauncherException and MenuException as e:
         raise ProcedureException(e)
+
 def _run_wwise_setup_wizard(installation_info):
     try:
         unity_version = FakeLauncher.get_unity_project_version(installation_info["project_location"])

@@ -2,15 +2,12 @@
 
 ## General
 
-- Move logic from apply_patches_to_unity_integration.sh to apply_unity_integration_procedure.py
-- Handle missing files when applying patches
 - Implement ui.console.py and ui.kdialog.py
 - Show Download progress in Zenity (and console and kdialog in the future)
 - Handle login
 - Unreal Integration
 - Godot Integration
 - Downloader should be able to use curl if wget is not installed
-- Add patch for Unity integration version 19 (currently supported only 18)
 
 ## Installation
 

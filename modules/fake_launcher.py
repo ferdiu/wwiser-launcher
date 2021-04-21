@@ -5,12 +5,15 @@ import base64
 import subprocess
 import sys
 import yaml
+import pathlib
 
 from .download_manager.wget import Wget as Downloader
 
 _DEBUG = bool(os.environ.get('DEBUG'))
 if _DEBUG:
     import traceback
+
+supported_unity_integration_versions = [ 18, 19 ]
 
 class BundleType(object):
     wwise = "wwise"
@@ -450,6 +453,30 @@ rQIDAQAB
             return loaded["m_EditorVersion"]
 
     @staticmethod
+    def unity_project_has_wwise_integration(path):
+        if not FakeLauncher.is_valid_unity_project_directory(path):
+            return False
+
+        return os.path.isfile(path + "/Assets/Wwise/Version.txt") or os.path.isfile(path + "/Assets/Wwise/NewVersion.txt")
+
+    @staticmethod
+    def get_unity_project_wwise_integration_version(path):
+        if not FakeLauncher.unity_project_has_wwise_integration(path):
+            return 0
+
+        version_file_path = ""
+        if os.path.isfile(path + "/Assets/Wwise/Version.txt"):
+            version_file_path = path + "/Assets/Wwise/Version.txt"
+        else:
+            version_file_path = path + "/Assets/Wwise/NewVersion.txt"
+
+        with open(version_file_path) as version_file:
+            for l in version_file.readlines():
+                if "Unity Integration Version:" in l:
+                    return int(l.split(":")[1].strip())
+        return 0
+
+    @staticmethod
     def get_unity_editor_install_location_from_unityhub():
         with open(os.environ.get("HOME") + "/.config/UnityHub" + "/secondaryInstallPath.json") as unity_editor_path_file:
             return unity_editor_path_file.readline().strip().strip("\"").rstrip("/")
@@ -458,3 +485,53 @@ rQIDAQAB
     def get_unity_editor_executable(version):
         install_path = FakeLauncher.get_unity_editor_install_location_from_unityhub()
         return install_path + "/" + version + "/Editor/Unity"
+
+    @staticmethod
+    def apply_unity_integration_patch(project_path):
+        if not FakeLauncher.unity_project_has_wwise_integration(project_path):
+            raise FakeLauncherException("This project has no Wwise Integration installed.")
+
+        unity_integration_version = FakeLauncher.get_unity_project_wwise_integration_version(project_path)
+
+        if not unity_integration_version in supported_unity_integration_versions:
+            raise FakeLauncherException("Unity Integration Version " + str(unity_integration_version) + " not supported.")
+
+        convert_all_CRLF_to_LF(project_path, "cs")
+
+        return apply_patch(project_path, FakeLauncher.get_unity_integration_patch_path(unity_integration_version))
+
+    @staticmethod
+    def get_unity_integration_patch_path(version):
+        return FakeLauncher.wwiser_launcher_location + "/unity_integration/patches/patch_v" + str(version) + ".patch"
+
+    @staticmethod
+    def install_wine_helper_in_project(project_path):
+        if not FakeLauncher.unity_project_has_wwise_integration(project_path):
+            raise FakeLauncherException("This project has no Wwise Integration installed.")
+        
+        unity_integration_version = FakeLauncher.get_unity_project_wwise_integration_version(project_path)
+
+        relative_destination = project_path
+        if unity_integration_version <= 18:
+            relative_destination = project_path + "/Assets"
+        else:
+            relative_destination = project_path + "/Assets/Wwise/API/Runtime"
+        
+        return subprocess.Popen([ "cp", FakeLauncher.wwiser_launcher_location + "/unity_integration/WineHelper.cs", relative_destination ], stdout=subprocess.PIPE, universal_newlines=True)
+
+def apply_patch(destination_directory, path_to_patch, backup_originals = False):
+    command = [ "patch", "-u" ]
+    if backup_originals:
+        command.append([ "-b" ])
+    command += [ "-d", destination_directory, "-p0" ]
+
+    with open(path_to_patch) as patch_file:
+        return subprocess.Popen(command, stdin=patch_file, stdout=subprocess.PIPE, universal_newlines=True)
+
+def convert_all_CRLF_to_LF(directory = ".", extension = "*"):
+    # No seriously, whats wrong with people using CRLF?
+    for (i, file) in enumerate(recursively_list_all_files_in_dir(directory, extension)):
+        subprocess.call([ "sed", "-i", "s/\\r$//g", str(file) ])
+
+def recursively_list_all_files_in_dir(directory = ".", extension = "*"):
+    return list(pathlib.Path(directory).rglob("*." + extension))
