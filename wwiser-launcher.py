@@ -3,13 +3,14 @@
 import os
 import subprocess
 
-from modules.fake_launcher import FakeLauncher as Launcher
+from modules.fake_launcher import FakeLauncher as Launcher, FakeLauncherSettings as Settings
 from modules.ui.common import MenuCancel, MenuException
 from modules.ui import zenity as Menu
 
 # Import procedures
 from modules.install_procedure import get_installation_procedure
 from modules.apply_unity_integration_procedure import get_unity_integration_procedure
+from modules.settings_procedure import get_settings_procedure
 
 # Initialize globals
 _DEBUG = bool(os.environ.get('DEBUG'))
@@ -20,7 +21,8 @@ PROCEDURES = {
     "installation": get_installation_procedure,
     "unity_integration": get_unity_integration_procedure,
     "unreal_integration": Menu.ErrorDialog("Not implemented.", "This procedure is still not implemented."),
-    "godot_integration": Menu.ErrorDialog("Not implemented.", "This procedure is still not implemented.")
+    "godot_integration": Menu.ErrorDialog("Not implemented.", "This procedure is still not implemented."),
+    "settings": get_settings_procedure
 }
 
 def show_main_menu():
@@ -30,12 +32,16 @@ def show_main_menu():
         .add_row(False, [ "unity_integration", "Apply Unity Integration" ])\
         .add_row(False, [ "unreal_integration", "Apply Unreal Integration [NOT IMPLEMENTED]" ])\
         .add_row(False, [ "godot_integration", "Apply Godot Integration [NOT IMPLEMENTED]" ])\
+        .add_row(False, [ "settings", "Settings" ])\
         .show()
 
 def initialize():
     try:
-        Launcher.init()
+        Settings.load()
         if _DEBUG:
+            Settings.settings["debug"].value = True
+        Launcher.init()
+        if Settings.is_debug():
             print("wwiser-launcher installation path: " + wwiser_launcher_base_directory)
         Launcher.wwiser_launcher_location = wwiser_launcher_base_directory
     except Exception as e:

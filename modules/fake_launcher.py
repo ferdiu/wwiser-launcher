@@ -9,10 +9,6 @@ import pathlib
 
 from .download_manager.wget import Wget as Downloader
 
-_DEBUG = bool(os.environ.get('DEBUG'))
-if _DEBUG:
-    import traceback
-
 supported_unity_integration_versions = [ 18, 19 ]
 
 class BundleType(object):
@@ -44,9 +40,85 @@ class SourceCodeLevel(object):
 class FakeLauncherException(Exception):
     pass
 
+class Setting:
+    def __init__(self, id, name, description, default, modified = False):
+        self.id = id
+        self.value = default
+        self.name = name
+        self.description = description
+        self.default = default
+        self.modifiled = modified
+    
+    def is_modified(self):
+        return self.modifiled
+
+    def set_to(self, boolean):
+        self.value = boolean
+        self.modifiled = True
+    
+    def reset(self):
+        self.value = self.default
+        self.modifiled = False
+    
+    def get_as_tuple(self):
+        if not self.modifiled: return None
+        return (self.id, self.value)
+
+class FakeLauncherSettings:
+    config_file_name = "settings.json"
+    settings = {
+        "ask_cache": Setting("ask_cache", "Ask where to cache downloaded files", "If this is turned on the launcher will ask where to place downloaded files before starting downloading them.", False),
+        "debug": Setting("debug", "Debug mode", "Enable debugging.", False)
+    }
+
+    @staticmethod
+    def save_file_exists():
+        return os.path.isfile(FakeLauncher.config_dir + "/" + FakeLauncherSettings.config_file_name)
+
+    @staticmethod
+    def reset_all():
+        for k in FakeLauncherSettings.settings.keys():
+            FakeLauncherSettings.settings[k].reset()
+
+    @staticmethod
+    def save():
+        dict = {}
+        for k in FakeLauncherSettings.settings.keys():
+            tup = FakeLauncherSettings.settings[k].get_as_tuple()
+            if tup is not None:
+                dict[tup[0]] = tup[1]
+
+        with open(FakeLauncher.config_dir + "/" + FakeLauncherSettings.config_file_name, "w") as file:
+            json.dump(dict, file, indent=2)
+
+    @staticmethod
+    def load():
+        FakeLauncherSettings.reset_all()
+
+        if not FakeLauncherSettings.save_file_exists():
+            if "debug" in FakeLauncherSettings.settings and FakeLauncherSettings.is_debug():
+                print("No settings were saved. Nothing to load.")
+            return
+        
+        with open(FakeLauncher.config_dir + "/" + FakeLauncherSettings.config_file_name, "r") as file:
+            saved_settings = json.loads(file.read())
+            for k in saved_settings.keys():
+                if k in FakeLauncherSettings.settings:
+                    FakeLauncherSettings.settings[k].value = saved_settings[k]
+                else:
+                    raise FakeLauncherException("There is no setting with id " + str(k))
+
+    @staticmethod
+    def is_debug():
+        return FakeLauncherSettings.settings["debug"].value
+
+if FakeLauncherSettings.is_debug():
+    import traceback
+
 class FakeLauncher(object):
     wwiser_launcher_location = ""
     config_dir = os.environ.get("HOME") + "/.config/wwiser-launcher"
+    cache_dir = os.environ.get("HOME") + "/.cache/wwiser-launcher"
     bundles_dir = config_dir + "/bundles"
 
     # It was necessary to hardcode a version to retrieve a newer version
@@ -409,7 +481,7 @@ rQIDAQAB
 
     @staticmethod
     def _init_bundles():
-        if _DEBUG:
+        if FakeLauncherSettings.is_debug():
             try:
                 FakeLauncher.load_bundles_from_file()
             except:

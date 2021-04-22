@@ -2,13 +2,12 @@
 import os
 import subprocess
 
-from .fake_launcher import FakeLauncher, BundleType, FakeLauncherException, PackagesType, SourceCodeLevel
+from .fake_launcher import FakeLauncher, FakeLauncherSettings, BundleType, FakeLauncherException, PackagesType, SourceCodeLevel
 from .procedure import Procedure, ProcedureException, ProcedureStepCanceledException, ProcedureNode
 from .ui import zenity as Menu
 from .ui.common import byte_to_human_readable, MenuException, MenuCancel
 
-_DEBUG = bool(os.environ.get('DEBUG'))
-if _DEBUG:
+if FakeLauncherSettings.is_debug():
     import traceback
 
 def _pick_unity_integration_version(bundles):
@@ -108,13 +107,16 @@ def _pick_files_to_download(installation_info):
     return array
 
 def _pick_download_directory(installation_info):
-    try:
-        dir_selection_menu = Menu.SelectWritableDirectory("Choose where you want to create the installation")
-        return dir_selection_menu.show()
-    except MenuCancel as e:
-        raise ProcedureStepCanceledException
-    except FakeLauncherException and MenuException as e:
-        raise ProcedureException(e)
+    if FakeLauncherSettings.settings["ask_cache"].value:
+        try:
+            dir_selection_menu = Menu.SelectWritableDirectory("Choose where you want to create the installation")
+            return dir_selection_menu.show()
+        except MenuCancel as e:
+            raise ProcedureStepCanceledException
+        except FakeLauncherException and MenuException as e:
+            raise ProcedureException(e)
+    else:
+        return FakeLauncher.cache_dir
 
 def _confirm_install(installation_info):
     confirm_dialog = Menu.ConfirmDialog("Do you want to proceed with installation?", "The following packages will be installed:")
@@ -180,11 +182,11 @@ def _check_downloaded_files(installation_info):
         for f in installation_info["file_list"]:
             sha1sum_output = subprocess.check_output([ "sha1sum", bundle_directory + "/" + f["id"] ]).decode('utf-8').split(" ")[0]
             if sha1sum_output == f["sha1"]:
-                if _DEBUG:
+                if FakeLauncherSettings.is_debug():
                     print("File " + f["id"] + ": OK")
             else:
                 # This part of the code can be reached only if the downloaded package has the same size but it is not the same!
-                if _DEBUG:
+                if FakeLauncherSettings.is_debug():
                     print("File " + f["id"] + ": FAIL")
                 Menu.ErrorDialog("An error occurred while checking file " + f["id"] + ".")
                 os.remove(bundle_directory + "/" + f["id"])
@@ -312,7 +314,7 @@ def get_unity_integration_procedure():
         ProcedureNode(
             "SelectDownloadDirectory",
             _pick_download_directory, (unity_integration_procedure.common,),
-            "download_directory")
+            "download_directory", get_jumped_on_cancel=not FakeLauncherSettings.settings["ask_cache"].value)
     ).enqueue_menu(
         ProcedureNode(
             "ConfirmInstallation",

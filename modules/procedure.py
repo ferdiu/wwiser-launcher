@@ -1,7 +1,8 @@
 
 import os
+from .fake_launcher import FakeLauncherSettings
 
-_DEBUG = bool(os.environ.get('DEBUG'))
+_DEBUG = bool(os.environ.get('DEBUG')) or FakeLauncherSettings.is_debug()
 if _DEBUG:
     import traceback
 
