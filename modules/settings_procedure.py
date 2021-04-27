@@ -50,6 +50,7 @@ def _apply_settings(common):
                 elif not k in selected and FakeLauncherSettings.settings[k].default != False:
                     FakeLauncherSettings.settings[k].set_to(False)
         FakeLauncherSettings.save()
+        FakeLauncherSettings.load()
 
     except MenuCancel as e:
         raise ProcedureStepCanceledException

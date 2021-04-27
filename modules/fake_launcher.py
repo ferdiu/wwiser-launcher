@@ -68,7 +68,8 @@ class FakeLauncherSettings:
     config_file_name = "settings.json"
     settings = {
         "ask_cache": Setting("ask_cache", "Ask where to cache downloaded files", "If this is turned on the launcher will ask where to place downloaded files before starting downloading them.", False),
-        "debug": Setting("debug", "Debug mode", "Enable debugging.", False)
+        "debug": Setting("debug", "Debug mode", "Enable debugging.", False),
+        "dev": Setting("dev", "Developer mode", "Enable developer mode.", False)
     }
 
     @staticmethod
@@ -90,6 +91,14 @@ class FakeLauncherSettings:
 
         with open(FakeLauncher.config_dir + "/" + FakeLauncherSettings.config_file_name, "w") as file:
             json.dump(dict, file, indent=2)
+    
+    @staticmethod
+    def _apply_changes(settings_dict):
+        for k in settings_dict.keys():
+            if k in FakeLauncherSettings.settings:
+                FakeLauncherSettings.settings[k].value = settings_dict[k]
+            else:
+                raise FakeLauncherException("There is no setting with id " + str(k))
 
     @staticmethod
     def load():
@@ -102,11 +111,7 @@ class FakeLauncherSettings:
         
         with open(FakeLauncher.config_dir + "/" + FakeLauncherSettings.config_file_name, "r") as file:
             saved_settings = json.loads(file.read())
-            for k in saved_settings.keys():
-                if k in FakeLauncherSettings.settings:
-                    FakeLauncherSettings.settings[k].value = saved_settings[k]
-                else:
-                    raise FakeLauncherException("There is no setting with id " + str(k))
+            FakeLauncherSettings._apply_changes(saved_settings)
 
     @staticmethod
     def is_debug():

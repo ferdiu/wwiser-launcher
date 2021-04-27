@@ -123,7 +123,7 @@ class Procedure(object):
         return self._execute_current()
     
     def _execute_current(self):
-        if _DEBUG:
+        if FakeLauncherSettings.is_debug():
             self._print_procedure_status()
         returned_value = ""
         try:
@@ -131,7 +131,7 @@ class Procedure(object):
         except ProcedureStepCanceledException as ex:
             return self._execute_previous()
         except ProcedureException:
-            if _DEBUG:
+            if FakeLauncherSettings.is_debug():
                 print(traceback.format_exc())
             print("Procedure " + self.id + " canceled because an error occurred.")
             return self._exit(EXIT_CODE["ERROR"])
