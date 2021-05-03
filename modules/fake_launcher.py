@@ -507,6 +507,20 @@ rQIDAQAB
                     print("Bundle loaded correctly.")
 
     @staticmethod
+    def save_bundle_to_file(file_path, bundle_id):
+        bundle = FakeLauncher.get_bundle_by_id(bundle_id)
+        with open(file_path, "w+") as file:
+            file.write(json.dumps(bundle))
+            file.close()
+
+    @staticmethod
+    def init_install_entry(bundle_id):
+        for bundle in FakeLauncher.bundles:
+            if bundle["id"] == bundle_id:
+                return bundle
+        return {}
+
+    @staticmethod
     def init():
         FakeLauncher._init_mk_config_dir()
         FakeLauncher._init_jwt()

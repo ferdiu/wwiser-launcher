@@ -11,7 +11,7 @@
 
 ## Installation
 
-- Generate install-entry.json during installation procedure
+- Generate install-entry.json during installation procedure (should be populated "children" and other fields???)
 - Add step for extraction
 
 ## Unity Integration

@@ -1,6 +1,7 @@
 
 import os
 import subprocess
+import json
 
 from .fake_launcher import FakeLauncher, FakeLauncherSettings, BundleType, FakeLauncherException, PackagesType, SourceCodeLevel
 from .procedure import Procedure, ProcedureException, ProcedureStepCanceledException, ProcedureNode
@@ -25,7 +26,12 @@ def _pick_wwise_version(bundles):
         raise ProcedureStepCanceledException
     except FakeLauncherException and MenuException as e:
         raise ProcedureException(e)
-    
+
+def _init_install_entry(installation_info):
+    try:
+        return FakeLauncher.init_install_entry(installation_info["bundle"]["id"])
+    except FakeLauncherException as e:
+        raise ProcedureException(e)
 
 def _pick_packages_from_bundle(installation_info):
     list_menu = Menu.Checklist("Packages selection", [ "ID", "Packages", "Description" ])
@@ -189,6 +195,13 @@ def _download_files(installation_info):
         except FakeLauncherException and MenuException as e:
             raise ProcedureException(e)
 
+def _write_bundle_and_install_entry(installation_info):
+    bundle_directory = installation_info["download_directory"] + "/Wwise " + FakeLauncher.get_version_as_string(installation_info["bundle"]) + "/bundle"
+    with open(bundle_directory + "/install-entry.json", "w+") as inst_entry:
+        inst_entry.write(json.dumps(installation_info["install-entry"]))
+    with open(bundle_directory + "/bundle.json", "w+") as inst_entry:
+        inst_entry.write(json.dumps(installation_info["bundle"]))
+
 def _check_downloaded_files(installation_info):
     bundle_directory = installation_info["download_directory"] + "/Wwise " + FakeLauncher.get_version_as_string(installation_info["bundle"]) + "/bundle"
 
@@ -203,7 +216,7 @@ def get_installation_procedure():
     installation_procedure = Procedure("installation")
     installation_procedure.set_common({
         "bundle": {},
-        "install_entry": {},
+        "install-entry": {},
         "AuthoringPlatforms": [ "Win32", "x64" ],
         "AuthoringOS": [ "Windows" ],
         "SourceCodeLevel": [ SourceCodeLevel.level2, SourceCodeLevel.level3 ],
@@ -219,6 +232,11 @@ def get_installation_procedure():
             "PickWwiseVersion",
             _pick_wwise_version, (FakeLauncher.bundles,),
             "bundle")
+    ).enqueue_menu(
+        ProcedureNode(
+            "InitInstallEntry",
+            _init_install_entry, (installation_procedure.common,),
+            "install-entry", get_jumped_on_cancel=True)
     ).enqueue_menu(
         ProcedureNode(
             "PickPackagesFromBundles",
@@ -252,6 +270,11 @@ def get_installation_procedure():
         ProcedureNode(
             "DownloadArchives",
             _download_files, (installation_procedure.common,))
+    ).enqueue_menu(
+        ProcedureNode(
+            "WriteInfoFiles",
+            _write_bundle_and_install_entry, (installation_procedure.common,),
+            get_jumped_on_cancel=True)
     ).enqueue_menu(
         ProcedureNode(
             "CheckDownloadedArchives",
