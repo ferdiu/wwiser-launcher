@@ -12,6 +12,7 @@
 ## Installation
 
 - Generate install-entry.json during installation procedure (should be populated "children" and other fields???)
+- Offline installation
 
 ## Unity Integration
 
