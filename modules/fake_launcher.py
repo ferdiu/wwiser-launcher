@@ -155,6 +155,30 @@ rQIDAQAB
     u_id = ""
 
     @staticmethod
+    def authoring_app_launcher(install_path, version):
+        return """#!/bin/bash
+
+# GENERATED DURING INSTALLATION VARS
+INSTALLED_PATH=\"""" + install_path + """\"
+VERSION=""" + version + """
+
+# COMMON VARS
+COMMON_PATH_TO_BINARY="Authoring/x64/Release/bin"
+COMMON_PATH_TO_BINARY_WIN="`echo $COMMON_PATH_TO_BINARY | sed -e 's:/:\\\\:g'`"
+EXEC_NAME="Wwise.exe"
+
+EXECUTE="${INSTALLED_PATH}/Wwise ${VERSION}/${COMMON_PATH_TO_BINARY}/${EXEC_NAME}"
+
+export WWISEROOT="`winepath -w \"${INSTALLED_PATH}/Wwise ${VERSION}\"`"
+export WWISESDK="${WWISEROOT}\SDK"
+export WWISE_EXE_PATH="${WWISEROOT}"\\"${COMMON_PATH_TO_BINARY_WIN}"
+export WWISE_COMMON_GENERATEDSOUNDBANKS_PATH="GeneratedSoundBanks"
+export WINEDEBUG=-all
+
+exec wine "${EXECUTE}"
+"""
+
+    @staticmethod
     def _get_json_launcher_info():
         return {
             "version": {
@@ -454,6 +478,13 @@ rQIDAQAB
     @staticmethod
     def is_file_downloadable(file):
         return "status" in file and file["status"] == "Success"
+
+    @staticmethod
+    def extract_archive(archive_path, dest_path = ".", skip_old_files = True):
+        command = [ "tar", "xf", archive_path, "--directory", dest_path ]
+        if skip_old_files:
+            command.append("--skip-old-files")
+        return subprocess.Popen(command, stdout=subprocess.PIPE, universal_newlines=True)
 
     @staticmethod
     def _init_mk_config_dir():

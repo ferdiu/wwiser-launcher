@@ -2,6 +2,7 @@
 import os
 import subprocess
 import json
+from sys import stdout
 
 from .fake_launcher import FakeLauncher, FakeLauncherSettings, BundleType, FakeLauncherException, PackagesType, SourceCodeLevel
 from .procedure import Procedure, ProcedureException, ProcedureStepCanceledException, ProcedureNode
@@ -212,6 +213,78 @@ def _check_downloaded_files(installation_info):
         else:
             print("File " + f["id"] + ": FAIL")
 
+def _select_install_destination(installation_info):
+    # TODO make this a selection instead of prefixed path
+    os.makedirs(installation_info["install_path"] + "/Wwise " + FakeLauncher.get_version_as_string(installation_info["install-entry"]), exist_ok=True)
+
+def _extract_archives(installation_info):
+    bundle_directory = installation_info["download_directory"] + "/Wwise " + FakeLauncher.get_version_as_string(installation_info["install-entry"]) + "/bundle"
+
+    for (i, f) in enumerate(installation_info["file_list"]):
+        # TODO show progress
+        x_process = FakeLauncher.extract_archive(bundle_directory + "/" + f["id"], dest_path = installation_info["install_path"] + "/Wwise " + FakeLauncher.get_version_as_string(installation_info["install-entry"]))
+        x_process.wait()
+
+def _fix_directories(installation_info):
+    #Find problematic directories
+    find_proc = subprocess.Popen([
+        "find",
+        installation_info["install_path"] + "/Wwise " + FakeLauncher.get_version_as_string(installation_info["install-entry"]),
+        "-type", "d"
+    ], stdout=subprocess.PIPE, universal_newlines=True)
+    sort_proc = subprocess.Popen([
+        "sort", "-f"
+    ], stdin=find_proc.stdout, stdout=subprocess.PIPE, universal_newlines=True)
+    uniq_proc = subprocess.Popen([
+        "uniq", "-id"
+    ], stdin=sort_proc.stdout, stdout=subprocess.PIPE, universal_newlines=True)
+
+    output, errors = uniq_proc.communicate()
+    problematic_dirs = output.split("\n")
+    # Remove empty strings
+    problematic_dirs = [ d for d in problematic_dirs if d ]
+
+    fixed = 0
+    for dir in problematic_dirs:
+        fixed += 1
+        alternatives = subprocess.check_output([
+            "find",
+            installation_info["install_path"] + "/Wwise " + FakeLauncher.get_version_as_string(installation_info["install-entry"]),
+            "-ipath", dir,
+            "-type", "d",
+        ], universal_newlines=True).split("\n")
+        # Select the "most lower case" directory
+        selected = max(alternatives)
+        for alt in alternatives:
+            if alt == selected: continue
+            for f in os.listdir(alt):
+                os.rename(alt + "/" + f, selected + "/" + f)
+
+    if fixed > 0:
+        _fix_directories(installation_info)
+
+def _generate_wwise_authoring_app_launch_script(installation_info):
+    list_menu = Menu.Radiolist("Install Authoring ", [ "ID", "Directory" ])
+    list_menu.add_row(True, [os.environ.get("HOME"), "Place it in the home to move it later" ])
+    wwise_version = FakeLauncher.get_version_as_string(installation_info["install-entry"])
+
+    for d in os.environ.get("PATH").split(":"):
+        if os.access(d, os.W_OK):
+            list_menu.add_row(False, [ d, d ])
+
+    try:
+        selected_dir = list_menu.show()
+        if len(selected_dir) > 0:
+            with open(selected_dir + "/wwise_" + wwise_version, "w") as file:
+                file.write(FakeLauncher.authoring_app_launcher(installation_info["install_path"].replace(os.environ.get("HOME"), "${HOME}"), wwise_version))
+                file.close()
+                os.chmod(selected_dir + "/wwise_" + wwise_version, 755)
+    except MenuCancel as e:
+        raise ProcedureStepCanceledException
+    except FakeLauncherException and MenuException as e:
+        raise ProcedureException(e)
+    
+
 def get_installation_procedure():
     installation_procedure = Procedure("installation")
     installation_procedure.set_common({
@@ -226,7 +299,8 @@ def get_installation_procedure():
         "download_size": 0,
         "installed_size": 0,
         "file_list": [],
-        "download_directory": ""
+        "download_directory": "",
+        "install_path": os.environ.get("HOME") + "/.wine/drive_c/Program Files (x86)/Audiokinetic"
     }).enqueue_menu(
         ProcedureNode(
             "PickWwiseVersion",
@@ -278,6 +352,26 @@ def get_installation_procedure():
     ).enqueue_menu(
         ProcedureNode(
             "CheckDownloadedArchives",
-            _check_downloaded_files, (installation_procedure.common,))
+            _check_downloaded_files, (installation_procedure.common,),
+            get_jumped_on_cancel=True)
+    ).enqueue_menu(
+        ProcedureNode(
+            "SelectInstallationDestination",
+            _select_install_destination, (installation_procedure.common,),
+            get_jumped_on_cancel=True)
+    ).enqueue_menu(
+        ProcedureNode(
+            "ExtractArchives",
+            _extract_archives, (installation_procedure.common,),
+            get_jumped_on_cancel=True)
+    ).enqueue_menu(
+        ProcedureNode(
+            "FixDirectories",
+            _fix_directories, (installation_procedure.common,),
+            get_jumped_on_cancel=True)
+    ).enqueue_menu(
+        ProcedureNode(
+            "GenerateWwiseAuthoringAppScript",
+            _generate_wwise_authoring_app_launch_script, (installation_procedure.common,))
     )
     return installation_procedure
