@@ -123,6 +123,11 @@ class Checklist(List):
         self._compile()
         return self._do_show().split(self._split_char)
 
+class SelectFile(Dialog):
+    @abstractmethod
+    def __init__(self, title):
+        pass
+
 class SelectDirectory(Dialog):
     @abstractmethod
     def __init__(self, title):

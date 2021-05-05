@@ -262,7 +262,7 @@ exec wine "${EXECUTE}"
     @staticmethod
     def download_file(file, destination_dir = ".", url = "", force = False):
         if os.path.exists(destination_dir + "/" + file["id"]) and\
-           os.path.getsize(destination_dir + "/" + file["id"]) == file["size"] and not force:
+           subprocess.check_output([ "sha1sum", destination_dir + "/" + file["id"] ]).decode('utf-8').split(" ")[0] == file["sha1"] and not force:
            return
 
         header = [ "Content-type: application/json", "Authorization: Bearer " + FakeLauncher.jwt ]
@@ -343,6 +343,7 @@ exec wine "${EXECUTE}"
     @staticmethod
     def get_bundle_by_id(bundle_id):
         try:
+            if not FakeLauncherSettings.is_debug(): raise Exception
             with open(FakeLauncher.bundles_dir + "/" + bundle_id + ".json") as f:
                 return json.loads(f.read())
         except:
@@ -477,7 +478,7 @@ exec wine "${EXECUTE}"
 
     @staticmethod
     def is_file_downloadable(file):
-        return "status" in file and file["status"] == "Success"
+        return (("status" in file) and (file["status"] == "Success"))
 
     @staticmethod
     def extract_archive(archive_path, dest_path = ".", skip_old_files = True):

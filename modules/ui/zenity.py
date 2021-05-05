@@ -82,6 +82,25 @@ class Checklist(Menu.Checklist, List):
             else:
                 raise Menu.MenuException(e.output)
 
+class SelectFile(Menu.SelectFile, Dialog):
+    def __init__(self, title, file_filter = None):
+        Dialog.__init__(self, title, width = None, height = None)
+        self.type = [ "--file-selection" ]
+        self.file_filter = file_filter
+
+    def _additional_compile(self):
+        if self.file_filter:
+            self._add_to_compile_list([ "--file-filter", self.file_filter ])
+
+    def _do_show(self):
+        try:
+            return subprocess.check_output(self.compiled).decode("utf-8").replace("\r", "").replace("\n", "")
+        except subprocess.CalledProcessError as e:
+            if e.returncode == 1:
+                raise Menu.MenuCancel
+            else:
+                raise Menu.MenuException(e.output)
+
 class SelectDirectory(Menu.SelectDirectory, Dialog):
     def __init__(self, title):
         Dialog.__init__(self, title, width = None, height = None)

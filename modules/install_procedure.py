@@ -7,7 +7,7 @@ from sys import stdout
 from .fake_launcher import FakeLauncher, FakeLauncherSettings, BundleType, FakeLauncherException, PackagesType, SourceCodeLevel
 from .procedure import Procedure, ProcedureException, ProcedureStepCanceledException, ProcedureNode
 from .ui import zenity as Menu
-from .ui.common import byte_to_human_readable, MenuException, MenuCancel
+from .ui.common import ErrorDialog, byte_to_human_readable, MenuException, MenuCancel
 
 if FakeLauncherSettings.is_debug():
     import traceback
@@ -205,13 +205,37 @@ def _write_bundle_and_install_entry(installation_info):
 
 def _check_downloaded_files(installation_info):
     bundle_directory = installation_info["download_directory"] + "/Wwise " + FakeLauncher.get_version_as_string(installation_info["bundle"]) + "/bundle"
+    confirm_dialog = Menu.ConfirmDialog("Error checking files", "Following files didn't pass sha1 sum-check:\n")
+    problematic_files = []
 
     for f in installation_info["file_list"]:
         sha1sum_output = subprocess.check_output([ "sha1sum", bundle_directory + "/" + f["id"] ]).decode('utf-8').split(" ")[0]
-        if sha1sum_output == f["sha1"]:
+        if sha1sum_output == f["sha1"] and False:
             print("File " + f["id"] + ": OK")
         else:
             print("File " + f["id"] + ": FAIL")
+            problematic_files.append(f)
+            confirm_dialog.append_new_line("- " + f["id"])
+    
+    confirm_dialog.append_new_line("\nDo you want to continue the installation without them?")
+    confirm_dialog.append_new_line("\nNote: this may lead to unstable and incomplete installation.")
+
+    if len(problematic_files) > 0: 
+        try:
+            if confirm_dialog.show():
+                print("Continuing installation anyway.")
+                i = len(installation_info["file_list"]) - 1
+                while i >= 0:
+                    if installation_info["file_list"][i] in problematic_files:
+                        os.remove(bundle_directory + "/" + installation_info["file_list"].pop(i)["id"])
+                    i -= 1
+            else:
+                raise ProcedureStepCanceledException
+        except MenuCancel as e:
+            raise ProcedureStepCanceledException
+        except FakeLauncherException and MenuException as e:
+            raise ProcedureException(e)
+
 
 def _select_install_destination(installation_info):
     # TODO make this a selection instead of prefixed path
@@ -283,7 +307,32 @@ def _generate_wwise_authoring_app_launch_script(installation_info):
         raise ProcedureStepCanceledException
     except FakeLauncherException and MenuException as e:
         raise ProcedureException(e)
-    
+
+def _pick_offline_install_directory(installation_info):
+    try:
+        dir_selection_menu = Menu.SelectFile("Pick install-entry.json file", "install-entry.json")
+        install_entry_file_path = dir_selection_menu.show()
+        wwise_install_dir = install_entry_file_path.replace("/bundle/install-entry.json", "")
+        with open(install_entry_file_path) as inst_entry:
+            installation_info["install-entry"] = json.loads(inst_entry.read())
+        if installation_info["install-entry"]["type"] != "wwise":
+            raise ProcedureException("Not a Wwise Authoring App installation!")
+
+        # TODO use bundle to perform checks on files
+        if os.path.isfile(wwise_install_dir + "/bundle/bundle.json"):
+            with open(wwise_install_dir + "/bundle/bundle.json") as bundle_file:
+                installation_info["bundle"] = json.loads(bundle_file.read())
+
+        installation_info["file_list"] = [ { "id": tar } for tar in os.listdir(wwise_install_dir + "/bundle") if tar.endswith(".tar.xz") ]
+        print(installation_info["file_list"])
+
+        if len(installation_info["bundle"]):pass # TODO check files
+
+        installation_info["download_directory"] = wwise_install_dir.replace("/Wwise " + FakeLauncher.get_version_as_string(installation_info["install-entry"]), "")
+    except MenuCancel as e:
+        raise ProcedureStepCanceledException
+    except FakeLauncherException and MenuException as e:
+        raise ProcedureException(e)
 
 def get_installation_procedure():
     installation_procedure = Procedure("installation")
@@ -343,7 +392,8 @@ def get_installation_procedure():
     ).enqueue_menu(
         ProcedureNode(
             "DownloadArchives",
-            _download_files, (installation_procedure.common,))
+            _download_files, (installation_procedure.common,),
+            get_jumped_on_cancel=True)
     ).enqueue_menu(
         ProcedureNode(
             "WriteInfoFiles",
@@ -375,3 +425,41 @@ def get_installation_procedure():
             _generate_wwise_authoring_app_launch_script, (installation_procedure.common,))
     )
     return installation_procedure
+
+def get_offline_installation_procedure():
+    offline_installation_procedure = Procedure("offline installation")
+    offline_installation_procedure.set_common({
+        "bundle": {},
+        "install-entry": {},
+        "file_list": [],
+        "download_directory": "",
+        "install_path": os.environ.get("HOME") + "/.wine/drive_c/Program Files (x86)/Audiokinetic"
+    }).enqueue_menu(
+        ProcedureNode(
+            "PickInstallationFromDrive",
+            _pick_offline_install_directory, (offline_installation_procedure.common,))
+    ).enqueue_menu(
+        ProcedureNode(
+            "SelectInstallationDestination",
+            _select_install_destination, (offline_installation_procedure.common,),
+            get_jumped_on_cancel=True)
+    ).enqueue_menu(
+        ProcedureNode(
+            "ExtractArchives",
+            _extract_archives, (offline_installation_procedure.common,),
+            get_jumped_on_cancel=True)
+    ).enqueue_menu(
+        ProcedureNode(
+            "FixDirectories",
+            _fix_directories, (offline_installation_procedure.common,),
+            get_jumped_on_cancel=True)
+    ).enqueue_menu(
+        ProcedureNode(
+            "GenerateWwiseAuthoringAppScript",
+            _generate_wwise_authoring_app_launch_script, (offline_installation_procedure.common,))
+    )
+    # Select directory containing offline installation
+    # Check it is a wwise install-entry.json
+    # Get version
+
+    return offline_installation_procedure

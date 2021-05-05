@@ -8,7 +8,7 @@ from modules.ui.common import MenuCancel, MenuException
 from modules.ui import zenity as Menu
 
 # Import procedures
-from modules.install_procedure import get_installation_procedure
+from modules.install_procedure import get_installation_procedure, get_offline_installation_procedure
 from modules.apply_unity_integration_procedure import get_unity_integration_procedure
 from modules.settings_procedure import get_settings_procedure
 
@@ -19,7 +19,7 @@ wwiser_launcher_base_directory = os.path.abspath(os.path.dirname(__file__))
 PROCEDURES = {
     "login": Menu.ErrorDialog("Not implemented.", "This procedure is still not implemented."),
     "installation": get_installation_procedure,
-    "offline_installation": Menu.ErrorDialog("Not implemented.", "This procedure is still not implemented."),
+    "offline_installation": get_offline_installation_procedure,
     "unity_integration": get_unity_integration_procedure,
     "unreal_integration": Menu.ErrorDialog("Not implemented.", "This procedure is still not implemented."),
     "godot_integration": Menu.ErrorDialog("Not implemented.", "This procedure is still not implemented."),
@@ -30,7 +30,7 @@ def show_main_menu():
     return Menu.Radiolist("wwiser launcher - " + Launcher.u_id, [ "ID", "" ])\
         .add_row(True, [ "login", "Login [NOT IMPLEMENTED]" ])\
         .add_row(False, [ "installation", "Install Packages" ])\
-        .add_row(False, [ "offline_installation", "Install Packages (Offline) [NOT IMPLEMENTED]" ])\
+        .add_row(False, [ "offline_installation", "Install Packages (Offline)" ])\
         .add_row(False, [ "unity_integration", "Apply Unity Integration" ])\
         .add_row(False, [ "unreal_integration", "Apply Unreal Integration [NOT IMPLEMENTED]" ])\
         .add_row(False, [ "godot_integration", "Apply Godot Integration [NOT IMPLEMENTED]" ])\

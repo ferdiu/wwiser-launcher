@@ -63,7 +63,7 @@ class Wget(object):
 
         command.append(url)
 
-        return DownloadProcess(subprocess.Popen(command, stdout=wget_stdout, universal_newlines=True), url, "GET")
+        return DownloadProcess(subprocess.Popen(command, stderr=sys.stderr, stdout=wget_stdout, universal_newlines=True), url, "GET")
 
     @staticmethod
     def POST(post_data, url, output = None, destination = None, headers = [], wget_stdout = sys.stdout, args = []):
@@ -90,4 +90,4 @@ class Wget(object):
 
         command.append(url)
 
-        return DownloadProcess(subprocess.Popen(command, stdout=wget_stdout, universal_newlines=True), url, "POST")
+        return DownloadProcess(subprocess.Popen(command, stderr=sys.stderr, stdout=wget_stdout, universal_newlines=True), url, "POST")

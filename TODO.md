@@ -8,11 +8,12 @@
 - Unreal Integration
 - Godot Integration
 - Downloader should be able to use curl if wget is not installed
+- Eulas
 
 ## Installation
 
-- Generate install-entry.json during installation procedure (should be populated "children" and other fields???)
-- Offline installation
+- Populate install-entry.json "children" field during installation procedure
+- Keep track of installed Authoring App in a json
 
 ## Unity Integration
 
