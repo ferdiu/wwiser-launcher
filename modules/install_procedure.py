@@ -266,7 +266,7 @@ def _fix_directories(installation_info):
     output, errors = uniq_proc.communicate()
     problematic_dirs = output.split("\n")
     # Remove empty strings
-    problematic_dirs = [ d for d in problematic_dirs if d ]
+    problematic_dirs = [ d for d in problematic_dirs if len(d) > 0 ]
 
     fixed = 0
     for dir in problematic_dirs:
@@ -277,12 +277,14 @@ def _fix_directories(installation_info):
             "-ipath", dir,
             "-type", "d",
         ], universal_newlines=True).split("\n")
+        alternatives = [ d for d in alternatives if len(d) > 0 ]
         # Select the "most lower case" directory
         selected = max(alternatives)
         for alt in alternatives:
             if alt == selected: continue
             for f in os.listdir(alt):
                 os.rename(alt + "/" + f, selected + "/" + f)
+                os.rmdir(alt)
 
     if fixed > 0:
         _fix_directories(installation_info)
