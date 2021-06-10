@@ -164,14 +164,14 @@ VERSION=""" + version + """
 
 # COMMON VARS
 COMMON_PATH_TO_BINARY="Authoring/x64/Release/bin"
-COMMON_PATH_TO_BINARY_WIN="`echo $COMMON_PATH_TO_BINARY | sed -e 's:/:\\\\:g'`"
+COMMON_PATH_TO_BINARY_WIN="`echo $COMMON_PATH_TO_BINARY | sed -e 's:/:\\\\\\\\:g'`"
 EXEC_NAME="Wwise.exe"
 
 EXECUTE="${INSTALLED_PATH}/Wwise ${VERSION}/${COMMON_PATH_TO_BINARY}/${EXEC_NAME}"
 
-export WWISEROOT="`winepath -w \"${INSTALLED_PATH}/Wwise ${VERSION}\"`"
+export WWISEROOT="`winepath -w \\"${INSTALLED_PATH}/Wwise ${VERSION}\\"`"
 export WWISESDK="${WWISEROOT}\SDK"
-export WWISE_EXE_PATH="${WWISEROOT}"\\"${COMMON_PATH_TO_BINARY_WIN}"
+export WWISE_EXE_PATH="${WWISEROOT}"\\\\"${COMMON_PATH_TO_BINARY_WIN}"
 export WWISE_COMMON_GENERATEDSOUNDBANKS_PATH="GeneratedSoundBanks"
 export WINEDEBUG=-all
 
@@ -407,10 +407,19 @@ exec wine "${EXECUTE}"
             with open(FakeLauncher.config_dir + "/wwise_launcher_version.txt", "w") as vers:
                 # most recent version
                 FakeLauncher.most_recent_launcher = json.loads(f.read())["mostRecentLauncher"]
+                FakeLauncher.version = FakeLauncher.most_recent_launcher["version"]
                 vers.write(json.dumps(FakeLauncher.most_recent_launcher))
                 vers.close()
                 f.close()
-    
+
+    @staticmethod
+    def load_wwise_launcher_info():
+        try:
+            f = open(FakeLauncher.config_dir + "/wwise_launcher_version.txt", "r")
+            FakeLauncher.version = json.loads(f.read())["version"]
+        except:
+            print("Couldn't load wwise launcher version from file")
+
     @staticmethod
     def get_values_in_group(bundle, group_id):
         if not ("groups" in bundle):
@@ -556,6 +565,7 @@ exec wine "${EXECUTE}"
     def init():
         FakeLauncher._init_mk_config_dir()
         FakeLauncher._init_jwt()
+        FakeLauncher.load_wwise_launcher_info()
         FakeLauncher._init_bundles()
         FakeLauncher.update_wwise_launcher_infos()
 

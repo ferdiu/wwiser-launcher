@@ -69,5 +69,6 @@ def start_wwiser_launcher():
 
 if __name__ == "__main__":
     initialize()
+    print("Fake launcher version: " + Launcher.get_version_as_string(Launcher.most_recent_launcher))
     while True:
         start_wwiser_launcher()
