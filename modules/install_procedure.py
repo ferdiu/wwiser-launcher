@@ -210,7 +210,7 @@ def _check_downloaded_files(installation_info):
 
     for f in installation_info["file_list"]:
         sha1sum_output = subprocess.check_output([ "sha1sum", bundle_directory + "/" + f["id"] ]).decode('utf-8').split(" ")[0]
-        if sha1sum_output == f["sha1"] and False:
+        if sha1sum_output == f["sha1"]:
             print("File " + f["id"] + ": OK")
         else:
             print("File " + f["id"] + ": FAIL")
