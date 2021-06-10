@@ -583,7 +583,7 @@ exec wine "${EXECUTE}"
             return ""
         
         with open(path + "/ProjectSettings/ProjectVersion.txt") as p_ver:
-            loaded = yaml.load(p_ver)
+            loaded = yaml.load(p_ver, Loader=yaml.FullLoader)
             return loaded["m_EditorVersion"]
 
     @staticmethod
