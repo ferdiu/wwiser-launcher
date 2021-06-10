@@ -407,7 +407,7 @@ exec wine "${EXECUTE}"
             with open(FakeLauncher.config_dir + "/wwise_launcher_version.txt", "w") as vers:
                 # most recent version
                 FakeLauncher.most_recent_launcher = json.loads(f.read())["mostRecentLauncher"]
-                vers.write(json.dumps(FakeLauncher.most_recent_launcher).encode('utf-8'))
+                vers.write(json.dumps(FakeLauncher.most_recent_launcher))
                 vers.close()
                 f.close()
     
@@ -557,6 +557,7 @@ exec wine "${EXECUTE}"
         FakeLauncher._init_mk_config_dir()
         FakeLauncher._init_jwt()
         FakeLauncher._init_bundles()
+        FakeLauncher.update_wwise_launcher_infos()
 
     @staticmethod
     def is_valid_unity_project_directory(path):
