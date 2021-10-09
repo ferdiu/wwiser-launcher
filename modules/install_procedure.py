@@ -71,7 +71,7 @@ def _pick_deployment_platforms(installation_info):
 
 def _pick_plugins(installation_info):
     list_menu = Menu.Checklist("Plugins", [ "ID", "Plugin", "Labels", "Description" ])
-    for b in FakeLauncher.get_all_bundles_for_wwise_version(installation_info["bundle"]["version"], BundleType.plugin):
+    for b in FakeLauncher.get_all_available_bundles_for_wwise_version(installation_info["bundle"]["version"], BundleType.plugin):
         if FakeLauncher.is_value_visible(b):
             list_menu.add_row(
                 FakeLauncher.is_value_checked(b),

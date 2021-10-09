@@ -43,7 +43,7 @@ class Wget(object):
     common_command = [ "wget", "--quiet", "--no-cookies" ]
 
     @staticmethod
-    def GET(url, output, destination = None, headers = [], wget_stdout = sys.stdout, args = []):
+    def GET(url, output = None, destination = None, headers = [], wget_stdout = sys.stdout, args = []):
         command = [] + Wget.common_command
 
         command.append("--show-progress")
@@ -53,7 +53,9 @@ class Wget(object):
             command.append(h)
         
         command.append("-O")
-        if destination is None:
+        if output is None:
+            command.append("-")
+        elif destination is None:
             command.append("./" + output)
         else:
             command.append(destination + "/" + output)

@@ -11,12 +11,17 @@ from .download_manager.wget import Wget as Downloader
 
 supported_unity_integration_versions = [ 18, 19 ]
 
-class BundleType(object):
+class BundleType(object): # these are the equivalent of Categories of the real Wwise Launcher
     wwise = "wwise"
     sample = "sample"
     unity_integration = "UnityIntegration"
     unreal_integration = "UnrealIntegration"
     plugin = "plugin"
+    launcher = "WwiseLauncher"
+
+    @staticmethod
+    def get_all():
+        return [ BundleType.wwise, BundleType.sample, BundleType.unity_integration, BundleType.unreal_integration, BundleType.plugin, BundleType.launcher ]
 
 class PackagesType(object):
     sample_project = "SampleProject"
@@ -139,7 +144,7 @@ class FakeLauncher(object):
 
     most_recent_launcher = {}
 
-    bundles = []
+    bundles = {}
     plugins = []
 
     pubkey="""-----BEGIN PUBLIC KEY-----
@@ -266,7 +271,7 @@ exec wine "${EXECUTE}"
            return
 
         header = [ "Content-type: application/json", "Authorization: Bearer " + FakeLauncher.jwt ]
-        if file["method"] == "POST":
+        if "method" in file and file["method"] == "POST":
             return Downloader.POST(
                 FakeLauncher._get_post_data_for_post_requests(),
                 file["url"] if "url" in file else url,
@@ -278,17 +283,17 @@ exec wine "${EXECUTE}"
         else:
             return Downloader.GET(
                 file["url"] if "url" in file else url,
-                file["id"],
-                destination_dir,
+                output=file["id"],
+                destination=destination_dir,
                 headers=header,
                 wget_stdout=sys.stdout
             )
 
     @staticmethod
     def download_bundle(bundle, url = ""):
-        dl_process = Downloader.POST(
-            FakeLauncher._get_post_data_for_post_requests(),
-            bundle["url"] if "url" in bundle else url,
+        id = bundle if isinstance(bundle, str) else bundle["id"]
+        dl_process = Downloader.GET(
+            "https://blob-api.gowwise.com/products/versions/" + id,
             headers=[ "Content-type: application/json", "Authorization: Bearer " + FakeLauncher.jwt ],
             wget_stdout=subprocess.PIPE
         )
@@ -301,56 +306,56 @@ exec wine "${EXECUTE}"
 
         b = FakeLauncher.get_payload_and_verify_signature(response)
 
-        with open(FakeLauncher.bundles_dir + "/" + bundle["id"] + ".json", "w") as file:
-            file.write(b.decode('utf-8'))
+        with open(FakeLauncher.bundles_dir + "/" + id + ".json", "w") as file:
+            bundle = json.loads(b.decode('utf-8'))["data"]
+            file.write(json.dumps(bundle))
             file.close()
         
-        return json.loads(b)
+        return bundle
 
     @staticmethod
     def update_bundles():
-        dl_process = Downloader.POST(
-            FakeLauncher._get_post_data_for_post_requests(),
-            "https://www.audiokinetic.com/wwise/launcher/?action=allBundles",
-            headers=[ "Content-type: application/json", "Authorization: Bearer " + FakeLauncher.jwt ],
-            wget_stdout=subprocess.PIPE
-        )
+        for category in BundleType.get_all():
+            dl_process = Downloader.GET(
+                "https://blob-api.gowwise.com/products/versions/?category=" + category,
+                headers=[ "Content-type: application/json", "Authorization: Bearer " + FakeLauncher.jwt ],
+                wget_stdout=subprocess.PIPE
+            )
 
-        response = ""
-        for out in dl_process.get_output():
-            response += out
+            response = ""
+            for out in dl_process.get_output():
+                response += out
 
-        dl_process.wait_finish()
+            dl_process.wait_finish()
 
-        b = FakeLauncher.get_payload_and_verify_signature(response)
+            b = FakeLauncher.get_payload_and_verify_signature(response)
 
-        with open(FakeLauncher.bundles_dir + "/bundles.json", "w") as file:
-            file.write(b.decode('utf-8'))
-            file.close()
+            with open(FakeLauncher.bundles_dir + "/" + category + ".json", "w") as file:
+                bundle = json.loads(b.decode('utf-8'))["data"]
+                file.write(json.dumps(bundle))
+                file.close()
 
-        return json.loads(b)
+        return FakeLauncher.bundles
 
     @staticmethod
     def load_bundles_from_file():
-        with open(FakeLauncher.bundles_dir + "/bundles.json", "r") as file:
-            # It is more convenient to store the url inside the bundle
-            for b in json.loads(file.read())["bundles"]:
-                # Ignore the "empty bundle" which represents the wwise launcher bundle
-                if b["bundle"]["id"] is None: continue
-                b["bundle"]["url"] = b["url"]
-                FakeLauncher.bundles.append(b["bundle"])
+        for category in BundleType.get_all():
+            with open(FakeLauncher.bundles_dir + "/" + category + ".json", "r") as file:
+                FakeLauncher.bundles[category] = json.loads(file.read())["bundles"]
 
     @staticmethod
     def get_bundle_by_id(bundle_id):
-        try:
-            if not FakeLauncherSettings.is_debug(): raise Exception
-            with open(FakeLauncher.bundles_dir + "/" + bundle_id + ".json") as f:
-                return json.loads(f.read())
-        except:
-            for b in FakeLauncher.bundles:
-                if "id" in b and b["id"] == bundle_id:
-                    return FakeLauncher.download_bundle(b)
-            return None
+        for category in BundleType.get_all():
+            try:
+                if not FakeLauncherSettings.is_debug(): raise Exception
+                with open(FakeLauncher.bundles_dir + "/" + bundle_id + ".json") as f:
+                    return json.loads(f.read())
+            except:
+                for b in FakeLauncher.bundles[category]:
+                    if "id" in b and b["id"] == bundle_id:
+                        return FakeLauncher.download_bundle(b)
+                # return FakeLauncher.download_bundle(bundle_id)
+        return None
     
     @staticmethod
     def _are_same_version(version1, version2):
@@ -382,35 +387,72 @@ exec wine "${EXECUTE}"
 
     @staticmethod
     def get_all_bundles_of_type(bundle_type):
+        return FakeLauncher.bundles[bundle_type]
+        # array = []
+        # for b in FakeLauncher.bundles:
+        #     if "type" in b and b["type"] == bundle_type:
+        #         array.append(b)
+        # return array
+
+    @staticmethod
+    def _file_is_in_list(l, file_id, file_display_name = None):
+        # TODO: maybe there is a better way to ignore older packages but for now no "version"-like field is present in the bundles
+        for f in l:
+            if ("id" in f and f["id"] == file_id) or ((not (file_display_name is None)) and (("displayName" in f and f["displayName"] == file_display_name) or ("name" in f and f["name"] == file_display_name))): return True
+        return False
+
+    @staticmethod
+    def get_all_available_bundles_for_wwise_version(wwise_version_object, bundle_type = None):
         array = []
-        for b in FakeLauncher.bundles:
-            if "type" in b and b["type"] == bundle_type:
-                array.append(b)
+        for p in FakeLauncher.get_bundle_by_id("wwise." + str(wwise_version_object["year"]) + "_" + str(wwise_version_object["major"]) + "_" + str(wwise_version_object["minor"]) + "_" + str(wwise_version_object["build"]))["children"]:
+            name = p["name"] if "name" in p else (p["displayName"] if "displayName" in p else None)
+            if (bundle_type is None or ("type" in p and p["type"] == bundle_type)) and (not FakeLauncher._file_is_in_list(array, p["id"], name)):
+                array.append(p)
         return array
 
     @staticmethod
     def get_all_bundles_for_wwise_version(wwise_version_object, bundle_type = None):
         array = []
-        if bundle_type is None:
-            for b in FakeLauncher.bundles:
-                if FakeLauncher._is_bundle_targeting_this_version(b, wwise_version_object):
-                    array.append(FakeLauncher.get_bundle_by_id(b["id"]))
-        else:
-            for b in FakeLauncher.get_all_bundles_of_type(bundle_type):
-                if FakeLauncher._is_bundle_targeting_this_version(b, wwise_version_object):
-                    array.append(FakeLauncher.get_bundle_by_id(b["id"]))
+        for p in FakeLauncher.get_bundle_by_id("wwise." + str(wwise_version_object["year"]) + "_" + str(wwise_version_object["major"]) + "_" + str(wwise_version_object["minor"]) + "_" + str(wwise_version_object["build"]))["children"]:
+            name = p["name"] if "name" in p else (p["displayName"] if "displayName" in p else None)
+            if (bundle_type is None or ("type" in p and p["type"] == bundle_type)) and (not FakeLauncher._file_is_in_list(array, p["id"], name)):
+                array.append(FakeLauncher.get_bundle_by_id(p["id"]))
         return array
 
     @staticmethod
+    def get_all_files_for_version(from_bundle_of_type, version_object, bundle_type = None):
+        array = []
+        for p in FakeLauncher.get_bundle_by_id(from_bundle_of_type.lower() + "." + str(version_object["year"]) + "_" + str(version_object["major"]) + "_" + str(version_object["minor"]) + "_" + str(version_object["build"]))["files"]:
+            name = p["name"] if "name" in p else (p["displayName"] if "displayName" in p else None)
+            if (bundle_type is None or ("type" in p and p["type"] == bundle_type)) and (not FakeLauncher._file_is_in_list(array, p["id"], name)):
+                array.append(FakeLauncher.get_bundle_by_id(p["id"]))
+        return array
+
+
+    @staticmethod
     def update_wwise_launcher_infos():
-        with open(FakeLauncher.bundles_dir + "/bundles.json", "r") as f:
-            with open(FakeLauncher.config_dir + "/wwise_launcher_version.txt", "w") as vers:
-                # most recent version
-                FakeLauncher.most_recent_launcher = json.loads(f.read())["mostRecentLauncher"]
-                FakeLauncher.version = FakeLauncher.most_recent_launcher["version"]
-                vers.write(json.dumps(FakeLauncher.most_recent_launcher))
-                vers.close()
-                f.close()
+        dl_process = Downloader.GET(
+            "https://blob-api.gowwise.com/products/versions/?category=" + BundleType.launcher,
+            headers=[ "Content-type: application/json", "Authorization: Bearer " + FakeLauncher.jwt ],
+            wget_stdout=subprocess.PIPE
+        )
+
+        response = ""
+        for out in dl_process.get_output():
+            response += out
+
+        dl_process.wait_finish()
+
+        b = FakeLauncher.get_payload_and_verify_signature(response)
+
+        with open(FakeLauncher.config_dir + "/wwise_launcher_version.txt", "w") as file:
+            bundle = json.loads(b.decode('utf-8'))["data"]["bundles"][0]
+            FakeLauncher.most_recent_launcher = bundle
+            FakeLauncher.version = FakeLauncher.most_recent_launcher["version"]
+            file.write(json.dumps(bundle))
+            file.close()
+
+        return bundle
 
     @staticmethod
     def load_wwise_launcher_info():
@@ -487,7 +529,7 @@ exec wine "${EXECUTE}"
 
     @staticmethod
     def is_file_downloadable(file):
-        return (("status" in file) and (file["status"] == "Success"))
+        return (("url" in file) and (len(file["url"]) > 0))
 
     @staticmethod
     def extract_archive(archive_path, dest_path = ".", skip_old_files = True):
@@ -556,10 +598,7 @@ exec wine "${EXECUTE}"
 
     @staticmethod
     def init_install_entry(bundle_id):
-        for bundle in FakeLauncher.bundles:
-            if bundle["id"] == bundle_id:
-                return bundle
-        return {}
+        return dict(FakeLauncher.get_bundle_by_id(bundle_id))
 
     @staticmethod
     def init():

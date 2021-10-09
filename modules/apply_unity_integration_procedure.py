@@ -96,7 +96,7 @@ def _pick_files_to_download(installation_info):
             array.append(f)
 
     # Pick plugins
-    for p in FakeLauncher.get_all_bundles_for_wwise_version(installation_info["bundle"]["version"], BundleType.plugin):
+    for p in FakeLauncher.get_all_files_for_version(BundleType.unity_integration, installation_info["bundle"]["version"], BundleType.plugin):
         if p["id"] in installation_info["plugins"]: # Filter the ones selected
             if "files" in p and isinstance(p["files"], list):
                 for f in p["files"]:
