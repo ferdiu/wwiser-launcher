@@ -580,6 +580,7 @@ exec wine "${EXECUTE}"
                 FakeLauncher.update_bundles()
             except:
                 print("Couldn't update bundles.json file: check your internet connection.")
+                FakeLauncher.login_as_guest()
             finally:
                 try:
                     FakeLauncher.load_bundles_from_file()
