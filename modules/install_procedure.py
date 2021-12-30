@@ -284,7 +284,7 @@ def _fix_directories(installation_info):
             if alt == selected: continue
             for f in os.listdir(alt):
                 os.rename(alt + "/" + f, selected + "/" + f)
-                os.rmdir(alt)
+            os.rmdir(alt)
 
     if fixed > 0:
         _fix_directories(installation_info)
