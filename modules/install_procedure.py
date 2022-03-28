@@ -304,7 +304,7 @@ def _generate_wwise_authoring_app_launch_script(installation_info):
             with open(selected_dir + "/wwise_" + wwise_version, "w") as file:
                 file.write(FakeLauncher.authoring_app_launcher(installation_info["install_path"].replace(os.environ.get("HOME"), "${HOME}"), wwise_version))
                 file.close()
-                os.chmod(selected_dir + "/wwise_" + wwise_version, 755)
+                os.chmod(selected_dir + "/wwise_" + wwise_version, 0o755)
     except MenuCancel as e:
         raise ProcedureStepCanceledException
     except FakeLauncherException and MenuException as e:
