@@ -542,12 +542,12 @@ exec wine "${EXECUTE}"
     def _init_mk_config_dir():
         # Silently create config directory
         try:
-            os.mkdir(FakeLauncher.config_dir)
+            os.makedirs(FakeLauncher.config_dir)
         except:
             pass
 
         try:
-            os.mkdir(FakeLauncher.bundles_dir)
+            os.makedirs(FakeLauncher.bundles_dir)
         except:
             pass
 

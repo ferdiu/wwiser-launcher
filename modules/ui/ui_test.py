@@ -10,8 +10,8 @@ test_unwritable = test_directory + "/unwritable"
 
 class TestingUIImplementation(unittest.TestCase):
     def setUp(self):
-        os.mkdir(test_directory)
-        os.mkdir(test_unwritable)
+        os.makedirs(test_directory)
+        os.makedirs(test_unwritable)
         os.chmod(test_unwritable, 555)
 
     def tearDown(self):

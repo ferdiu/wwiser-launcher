@@ -156,12 +156,12 @@ def _download_files(installation_info):
 
     # It is safe to ignore this errors because the menu already selected a valid destination
     try:
-        os.mkdir(download_destination)
+        os.makedirs(download_destination)
     except:
         pass
 
     try:
-        os.mkdir(download_destination + "/bundle")
+        os.makedirs(download_destination + "/bundle")
     except:
         pass
 
