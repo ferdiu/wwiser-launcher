@@ -1,7 +1,7 @@
 
 from .fake_launcher import FakeLauncher, FakeLauncherSettings, Setting, FakeLauncherException
 from .procedure import Procedure, ProcedureException, ProcedureStepCanceledException, ProcedureNode
-from .ui import zenity as Menu
+from modules.ui.auto import Menu as Menu
 from .ui.common import MenuException, MenuCancel
 
 def _show_settings_menu():

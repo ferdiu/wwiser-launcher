@@ -45,6 +45,7 @@ class Dialog(ABC):
         self._add_to_compile_list(self.body)
         try: self._additional_compile()
         except NoAdditionalCompile: pass
+        # print(' '.join(self.compiled))
 
     def set_width(self, width):
         self.width = None
@@ -72,6 +73,11 @@ class Dialog(ABC):
     def show(self):
         self._compile()
         return self._do_show()
+
+class Info(Dialog):
+    @abstractmethod
+    def __init__(self, title, text):
+        pass
 
 class List(Dialog):
     @abstractmethod
@@ -163,7 +169,7 @@ class ConfirmDialog(Dialog):
     @abstractmethod
     def __init__(self, title, question, ok_label = None, cancel_label = None, end = "\n"):
         pass
-    
+
     @abstractmethod
     def append_new_line(self, text = "", end = "\n"):
         pass
@@ -188,7 +194,7 @@ class ConfirmDialog(Dialog):
 
     def on_canceled(self, callback):
         self.cancel_action = callback
-    
+
     # override
     def show(self):
         self._compile()
@@ -208,7 +214,7 @@ class Progress(Dialog):
             self.monitored.wait()
         except Exception as e:
             MenuException(e)
-    
+
     def is_still_running(self):
         try:
             return self.monitored.poll() is None
@@ -219,7 +225,7 @@ class Progress(Dialog):
         try:
             for stdout_line in iter(lambda: self.monitored.stdout.read(1), b''):
                 yield stdout_line
-            
+
             self.monitored.stdout.close()
         except Exception as e:
             MenuException(e)
@@ -227,7 +233,7 @@ class Progress(Dialog):
     def get_returncode(self):
         if self.is_still_running(): return None
         return self.monitored.returncode
-    
+
     def cancel(self):
         try:
             self.monitored.kill()
@@ -270,7 +276,7 @@ def byte_to_human_readable(number):
     while result / 1024 > 1.0 and order < 4:
         order += 1
         result = result / 1024
- 
+
     result = round(result, 2)
 
     order_string = "B"

@@ -122,6 +122,10 @@ class FakeLauncherSettings:
     def is_debug():
         return FakeLauncherSettings.settings["debug"].value
 
+    @staticmethod
+    def is_dev_mode():
+        return FakeLauncherSettings.settings["dev"].value
+
 if FakeLauncherSettings.is_debug():
     import traceback
 
@@ -676,6 +680,7 @@ exec wine "${EXECUTE}"
 
     @staticmethod
     def get_unity_integration_patch_path(version):
+        print("Applying Unity Integration v" + str(version))
         return FakeLauncher.wwiser_launcher_location + "/unity_integration/patches/patch_v" + str(version) + ".patch"
 
     @staticmethod
@@ -694,13 +699,19 @@ exec wine "${EXECUTE}"
         return subprocess.Popen([ "cp", FakeLauncher.wwiser_launcher_location + "/unity_integration/WineHelper.cs", relative_destination ], stdout=subprocess.PIPE, universal_newlines=True)
 
 def apply_patch(destination_directory, path_to_patch, backup_originals = False):
-    command = [ "patch", "-u" ]
+    out = subprocess.PIPE
+    verbose = []
+    if FakeLauncherSettings.is_debug():
+        out = sys.stdout
+        verbose = [ "--verbose" ]
+
+    command = [ "patch" ] + verbose + [ "-u" ]
     if backup_originals:
         command.append([ "-b" ])
     command += [ "-d", destination_directory, "-p0" ]
 
     with open(path_to_patch) as patch_file:
-        return subprocess.Popen(command, stdin=patch_file, stdout=subprocess.PIPE, universal_newlines=True)
+        return subprocess.Popen(command, stdin=patch_file, stdout=out, universal_newlines=True)
 
 def convert_all_CRLF_to_LF(directory = ".", extension = "*"):
     # No seriously, whats wrong with people using CRLF?

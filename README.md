@@ -184,7 +184,8 @@ Don't do this the other way around (making a symlink pointing from the Unity pro
 - [ ] ui development
     - [X] zenity
         - [ ] show download progress
-    - [ ] kdialog
+    - [X] kdialog
+        - [ ] show download progress
     - [ ] console
 - [ ] populate install-entry.json "children" field during installation procedure
 - [ ] use a json to keep track of what was already installed

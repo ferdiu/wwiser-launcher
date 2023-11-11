@@ -29,6 +29,17 @@ class Dialog(Menu.Dialog):
     def _set_command(self, command):
         self.command = command
 
+class Info(Dialog):
+    def __init__(self, title, text):
+        Dialog.__init__(self, title)
+        self.type = [ "--info" ]
+        self.body = [ "--text", text ]
+        self.width = None
+        self.height = None
+
+    def _do_show(self):
+        return subprocess.check_output(self.compiled).decode("utf-8").replace("\r", "").replace("\n", "")
+
 class List(Menu.List, Dialog):
     def __init__(self, title, list_type, columns):
         Dialog.__init__(self, title)

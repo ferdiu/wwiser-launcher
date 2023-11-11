@@ -5,7 +5,7 @@ import subprocess
 
 from modules.fake_launcher import FakeLauncher as Launcher, FakeLauncherSettings as Settings
 from modules.ui.common import MenuCancel, MenuException
-from modules.ui import zenity as Menu
+from modules.ui.auto import Menu as Menu
 
 # Import procedures
 from modules.install_procedure import get_installation_procedure, get_offline_installation_procedure
@@ -45,6 +45,8 @@ def initialize():
         Launcher.init()
         if Settings.is_debug():
             print("wwiser-launcher installation path: " + wwiser_launcher_base_directory)
+        if Settings.is_dev_mode():
+            print("wwiser-launcher is starting in DEVELOPMENT MODE!")
         Launcher.wwiser_launcher_location = wwiser_launcher_base_directory
     except Exception as e:
         print("Couldn't initialize the launcher.")

@@ -6,7 +6,7 @@ from sys import stdout
 
 from .fake_launcher import FakeLauncher, FakeLauncherSettings, BundleType, FakeLauncherException, PackagesType, SourceCodeLevel
 from .procedure import Procedure, ProcedureException, ProcedureStepCanceledException, ProcedureNode
-from .ui import zenity as Menu
+from .ui.auto import Menu as Menu
 from .ui.common import ErrorDialog, byte_to_human_readable, MenuException, MenuCancel
 
 if FakeLauncherSettings.is_debug():
