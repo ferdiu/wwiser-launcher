@@ -232,6 +232,11 @@ def _apply_unity_integration_patch(installation_info):
         unity_version = FakeLauncher.get_unity_project_version(installation_info["project_location"])
         unity_executable_path = FakeLauncher.get_unity_editor_executable(unity_version)
 
+        if FakeLauncherSettings.is_dev_mode():
+            Menu.Info("DEV", "If you are developing a patch for Unity Integration " +
+                      "this is the moment to go back to the " +
+                      "`generate_unity_patch.sh` process and press [ENTER]").show()
+
         Menu.ProgressWait(
             "Applying Wwise Unity Integration Patch",
             "Wait until this process ends. Canceling this process may leave your project in a corrupted state.",
@@ -243,6 +248,11 @@ def _apply_unity_integration_patch(installation_info):
             "Wait until this process ends. Canceling this process may leave your project in a corrupted state.",
             FakeLauncher.install_wine_helper_in_project(installation_info["project_location"])
         ).show()
+
+        if FakeLauncherSettings.is_dev_mode():
+            Menu.Info("DEV", "If you are developing a patch for Unity Integration " +
+                      "this is the moment to go back to the " +
+                      "`generate_unity_patch.sh` process and press [ENTER]").show()
 
     except MenuCancel as e:
         raise ProcedureStepCanceledException
